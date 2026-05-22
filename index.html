@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>unobox - 跨平台私有即时通讯应用官网</title>
+  <meta name="description" content="unobox 是一款极速、安全的 Telegram 风格跨平台私有即时通讯应用，支持局域网发现与多服务端 Provider 连接。">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <!-- 发光粒子装饰 -->
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <!-- 导航栏 -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <span>💬 unobox</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link active">首页</a>
+      <a href="usage.html" class="nav-link">教程</a>
+      <a href="changelog.html" class="nav-link">版本日志</a>
+      <a href="unobox-Setup-0.1.0.exe" class="btn-nav-download" id="nav-download-btn">下载</a>
+    </div>
+  </nav>
+
+  <!-- Hero 主视觉区 -->
+  <section class="hero">
+    <div class="badge-version">LATEST VERSION v0.1.0</div>
+    <h1>私密即时通讯，由你掌控</h1>
+    <p>unobox 是一款 Telegram 风格的高颜值私有即时通讯应用。支持局域网自动发现、内置调试服务端、多 Provider 弹性管理，让你的数据重回私有与安全。</p>
+
+    <!-- 下载卡片 -->
+    <div class="glass-card download-hero-card">
+      <h3 class="download-title">获取 unobox 桌面客户端</h3>
+      
+      <div class="download-buttons">
+        <a href="https://github.com/samjoeyang/unobox-release/releases/download/v0.1.0/unobox-Setup-0.1.0.exe" class="btn-primary-lg" id="hero-download-btn">
+          <span id="hero-download-icon"></span>
+          <span id="hero-download-text">立即下载 Windows 客户端 (.exe)</span>
+        </a>
+      </div>
+
+      <div class="download-meta">
+        <span id="download-platform-info">系统: Windows x64 (NSIS)</span>
+        <span>状态: Stable 正式版</span>
+      </div>
+    </div>
+
+    <!-- 全平台版本下载区 -->
+    <div class="platform-grid" id="platform-grid">
+      <!-- Windows 卡片 -->
+      <div class="platform-card" id="card-win">
+        <div class="platform-icon">
+          <svg viewBox="0 0 88 88" width="24" height="24" fill="currentColor"><path d="M0 12v31.3h41.4V0L0 12zm0 64l41.4 12V46.7H0V76zm45.3 12.8L88 88V46.7H45.3V88.8zM45.3 0v43.3H88V0L45.3 0z"/></svg>
+        </div>
+        <h4 class="platform-title">Windows 客户端</h4>
+        <span class="platform-version">v0.1.0 · Stable 稳定版</span>
+        <div class="platform-download-buttons">
+          <a href="#" id="win-primary-btn" class="btn-download-sm primary">
+            📥 下载 .exe 安装包
+          </a>
+        </div>
+      </div>
+
+      <!-- macOS 卡片 -->
+      <div class="platform-card" id="card-mac">
+        <div class="platform-icon">
+          <svg viewBox="0 0 170 170" width="24" height="24" fill="currentColor"><path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.34.13-9.13-1.92-14.37-6.15-2.92-2.39-6.67-6.86-11.27-13.39-3.61-5.18-6.69-10.87-9.27-17.06-2.58-6.18-4.66-13.1-6.23-20.73-1.58-7.63-2.36-15.02-2.36-22.18 0-12.44 2.86-22.86 8.56-31.22 5.71-8.36 12.86-12.59 21.46-12.71 4.11 0 8.87 1.25 14.26 3.75 5.39 2.5 9.21 3.74 11.45 3.74 2.01 0 5.67-1.24 10.97-3.74 5.3-2.5 9.77-3.69 13.41-3.57 9.84.25 17.56 3.96 23.14 11.14-8.08 4.9-14.9 11.18-20.47 18.84-5.57 7.66-8.36 16.32-8.36 25.99 0 11.05 3.51 20.31 10.53 27.79 7.02 7.48 15.65 11.53 25.88 12.16-2.57 7.63-5.71 14.54-9.42 20.73zM119.22 32.22c0-7.72 2.76-14.88 8.28-21.49 5.52-6.61 12.27-10.37 20.26-11.27.13.9.2 1.67.2 2.32 0 7.34-2.73 14.28-8.18 20.82-5.46 6.54-12.23 10.37-20.31 11.49-.13-.64-.25-1.22-.25-1.87z"/></svg>
+        </div>
+        <h4 class="platform-title">macOS 客户端</h4>
+        <span class="platform-version">v0.1.0 · Stable 稳定版</span>
+        <div class="platform-download-buttons">
+          <a href="#" id="mac-primary-btn" class="btn-download-sm primary">
+            📥 下载 .dmg 镜像
+          </a>
+          <a href="#" id="mac-secondary-btn" class="btn-download-sm secondary">
+            📦 下载 .zip 压缩包
+          </a>
+        </div>
+      </div>
+
+      <!-- Linux 卡片 -->
+      <div class="platform-card" id="card-linux">
+        <div class="platform-icon">
+          <svg viewBox="0 0 512 512" width="24" height="24" fill="currentColor"><path d="M433.25 382.4c-6.8-13.3-17.7-27.1-32.3-40.8-11.4-10.7-24.6-20.9-39.6-30.5-2.8-1.8-5-4.4-6.3-7.5-1.3-3.1-1.5-6.6-.7-9.8.9-3.7 2.2-7.5 3.9-11.2 5.1-11.2 7.7-23 7.7-35 0-31-13.2-60.6-36.3-81.2-2.3-2.1-4.1-4.7-5.1-7.7-1-2.9-1.2-6.1-.5-9.1.5-2.1.8-4.3 1.1-6.5.9-6.4 1.3-13 1.3-19.5 0-21.7-8.6-42.5-24-57.9S306.9 44 285.2 44c-31.5 0-57 25.5-57 57 0 2.2.1 4.3.4 6.5.8 5.7 1.1 11.5.9 17.3-.2 5-.8 10-1.8 14.9-.7 3.3-2.2 6.3-4.5 8.7-2.3 2.4-5.3 3.9-8.7 4.5C189 157.6 167 186.2 167 217.6c0 10 2.3 20 6.6 29.3 1.6 3.4 2 7.3 1.2 11.1-.8 3.8-2.9 7.1-5.9 9.3-13.7 10.3-25.7 22.4-35.4 36.1-11.3 16-18.4 34.6-20.7 54-1.2 10.3.5 20.7 4.8 30.2 6.5 14.3 17.5 26.2 31.2 33.7s29.4 10 44.7 7.2c28.2-5.1 57.5-3 84.8 6.1 11.4 3.8 23.3 5.7 35.3 5.7 15.6 0 31.1-3.2 45.4-9.5 13-5.8 24.2-15.1 32.4-26.7 18.5-26 23.9-59.2 14.8-89.8z"/></svg>
+        </div>
+        <h4 class="platform-title">Linux 客户端</h4>
+        <span class="platform-version">v0.1.0 · Stable 稳定版</span>
+        <div class="platform-download-buttons">
+          <a href="#" id="linux-primary-btn" class="btn-download-sm primary">
+            📥 下载 AppImage
+          </a>
+          <a href="#" id="linux-secondary-btn" class="btn-download-sm secondary">
+            📦 下载 .deb 安装包
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 特性卡片展示区 -->
+  <section class="features-grid">
+    <div class="glass-card feature-item">
+      <div class="feature-icon">🛡️</div>
+      <h3>源码私有，绝对安全</h3>
+      <p>客户端源码安全可控，数据与通道支持完全自建。无任何第三方爬虫 and 数据监控，真正保障你的商业和社交机密安全。</p>
+    </div>
+    <div class="glass-card feature-item">
+      <div class="feature-icon">⚡</div>
+      <h3>局域网超音速通信</h3>
+      <p>搭载基于 better-sqlite3 本地数据库与 WebSocket 的高效架构，支持局域网内设备自动侦测与上线，实现高并发零延迟对等通信。</p>
+    </div>
+    <div class="glass-card feature-item">
+      <div class="feature-icon">🎨</div>
+      <h3>Telegram 极致体验</h3>
+      <p>高保真复刻 Telegram 的三栏式优雅布局、会话列表、精美消息气泡和主题配色，配合丝滑无边框交互，操作流畅顺手。</p>
+    </div>
+    <div class="glass-card feature-item">
+      <div class="feature-icon">🌐</div>
+      <h3>多网络联邦接入 (Matrix)</h3>
+      <p>目前已完美完成 Matrix 去中心化联邦网络接入。无论是局域网私有节点，还是全球 Matrix 节点，都能在同一个优雅的客户端中统一收发。</p>
+    </div>
+    <div class="glass-card feature-item">
+      <div class="feature-icon">🔌</div>
+      <h3>弹性适配器，极致扩展</h3>
+      <p>基于先进 of IServerProvider 接口设计，具备无限协议适配能力。后续将逐步接入本地局域网对等、RocketChat、Nextcloud 等协议，打破壁垒。</p>
+    </div>
+    <div class="glass-card feature-item">
+      <div class="feature-icon">🤖</div>
+      <h3>主流 AI 助手原生集成</h3>
+      <p>开发路线图中已规划主流 AI API (如 Gemini, OpenAI) 的原生接入。支持在客户端内直接与 AI 助手对话、润色消息、自动回复等常用功能。</p>
+    </div>
+  </section>
+
+  <!-- 底部 -->
+  <footer class="footer">
+    <p>© 2026 unobox Project. 版权所有。源码私有安全托管，构建产物公开静态分发。</p>
+    <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">基于 GitHub Pages & Actions 自动化闭环生态构建</p>
+  </footer>
+
+  <script>
+    // 三个平台的图标 SVG
+    const svgIcons = {
+      win: `<svg viewBox="0 0 88 88" style="width: 20px; height: 20px; fill: currentColor; margin-right: 8px; vertical-align: middle;"><path d="M0 12v31.3h41.4V0L0 12zm0 64l41.4 12V46.7H0V76zm45.3 12.8L88 88V46.7H45.3V88.8zM45.3 0v43.3H88V0L45.3 0z"/></svg>`,
+      mac: `<svg viewBox="0 0 170 170" style="width: 20px; height: 20px; fill: currentColor; margin-right: 8px; vertical-align: middle;"><path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.34.13-9.13-1.92-14.37-6.15-2.92-2.39-6.67-6.86-11.27-13.39-3.61-5.18-6.69-10.87-9.27-17.06-2.58-6.18-4.66-13.1-6.23-20.73-1.58-7.63-2.36-15.02-2.36-22.18 0-12.44 2.86-22.86 8.56-31.22 5.71-8.36 12.86-12.59 21.46-12.71 4.11 0 8.87 1.25 14.26 3.75 5.39 2.5 9.21 3.74 11.45 3.74 2.01 0 5.67-1.24 10.97-3.74 5.3-2.5 9.77-3.69 13.41-3.57 9.84.25 17.56 3.96 23.14 11.14-8.08 4.9-14.9 11.18-20.47 18.84-5.57 7.66-8.36 16.32-8.36 25.99 0 11.05 3.51 20.31 10.53 27.79 7.02 7.48 15.65 11.53 25.88 12.16-2.57 7.63-5.71 14.54-9.42 20.73zM119.22 32.22c0-7.72 2.76-14.88 8.28-21.49 5.52-6.61 12.27-10.37 20.26-11.27.13.9.2 1.67.2 2.32 0 7.34-2.73 14.28-8.18 20.82-5.46 6.54-12.23 10.37-20.31 11.49-.13-.64-.25-1.22-.25-1.87z"/></svg>`,
+      linux: `<svg viewBox="0 0 512 512" style="width: 20px; height: 20px; fill: currentColor; margin-right: 8px; vertical-align: middle;"><path d="M433.25 382.4c-6.8-13.3-17.7-27.1-32.3-40.8-11.4-10.7-24.6-20.9-39.6-30.5-2.8-1.8-5-4.4-6.3-7.5-1.3-3.1-1.5-6.6-.7-9.8.9-3.7 2.2-7.5 3.9-11.2 5.1-11.2 7.7-23 7.7-35 0-31-13.2-60.6-36.3-81.2-2.3-2.1-4.1-4.7-5.1-7.7-1-2.9-1.2-6.1-.5-9.1.5-2.1.8-4.3 1.1-6.5.9-6.4 1.3-13 1.3-19.5 0-21.7-8.6-42.5-24-57.9S306.9 44 285.2 44c-31.5 0-57 25.5-57 57 0 2.2.1 4.3.4 6.5.8 5.7 1.1 11.5.9 17.3-.2 5-.8 10-1.8 14.9-.7 3.3-2.2 6.3-4.5 8.7-2.3 2.4-5.3 3.9-8.7 4.5C189 157.6 167 186.2 167 217.6c0 10 2.3 20 6.6 29.3 1.6 3.4 2 7.3 1.2 11.1-.8 3.8-2.9 7.1-5.9 9.3-13.7 10.3-25.7 22.4-35.4 36.1-11.3 16-18.4 34.6-20.7 54-1.2 10.3.5 20.7 4.8 30.2 6.5 14.3 17.5 26.2 31.2 33.7s29.4 10 44.7 7.2c28.2-5.1 57.5-3 84.8 6.1 11.4 3.8 23.3 5.7 35.3 5.7 15.6 0 31.1-3.2 45.4-9.5 13-5.8 24.2-15.1 32.4-26.7 18.5-26 23.9-59.2 14.8-89.8z"/></svg>`
+    };
+
+    let currentVersion = '0.1.0'; // 默认 fallback
+    
+    // 智能检测操作系统
+    function getOS() {
+      if (navigator.userAgentData && navigator.userAgentData.platform) {
+        const platform = navigator.userAgentData.platform.toLowerCase();
+        if (platform.includes('mac')) return 'mac';
+        if (platform.includes('linux')) return 'linux';
+        if (platform.includes('win')) return 'win';
+      }
+      
+      const ua = navigator.userAgent.toLowerCase();
+      if (ua.indexOf('macintosh') >= 0 || ua.indexOf('mac os') >= 0) return 'mac';
+      if (ua.indexOf('linux') >= 0 && ua.indexOf('android') === -1) return 'linux';
+      return 'win'; // 默认 Windows
+    }
+    
+    const detectedOS = getOS();
+    
+    function updateDownloadLinks(version) {
+      const winExe = `https://github.com/samjoeyang/unobox-release/releases/download/v${version}/unobox-Setup-${version}.exe`;
+      const macDmg = `https://github.com/samjoeyang/unobox-release/releases/download/v${version}/unobox-${version}-arm64.dmg`;
+      const macZip = `https://github.com/samjoeyang/unobox-release/releases/download/v${version}/unobox-${version}-arm64-mac.zip`;
+      const linuxAppImage = `https://github.com/samjoeyang/unobox-release/releases/download/v${version}/unobox-${version}.AppImage`;
+      const linuxDeb = `https://github.com/samjoeyang/unobox-release/releases/download/v${version}/unobox_${version}_amd64.deb`;
+      
+      // 更新下方分类卡片中的链接
+      document.getElementById('win-primary-btn').setAttribute('href', winExe);
+      document.getElementById('mac-primary-btn').setAttribute('href', macDmg);
+      document.getElementById('mac-secondary-btn').setAttribute('href', macZip);
+      document.getElementById('linux-primary-btn').setAttribute('href', linuxAppImage);
+      document.getElementById('linux-secondary-btn').setAttribute('href', linuxDeb);
+      
+      // 更新所有小卡片上的版本号文本
+      const versionLabels = document.querySelectorAll('.platform-version');
+      versionLabels.forEach(label => {
+        label.innerText = `v${version} · Stable 稳定版`;
+      });
+      
+      // 更新顶部 Badge 版本号
+      const badge = document.querySelector('.badge-version');
+      if (badge) {
+        badge.innerText = `LATEST VERSION v${version}`;
+      }
+      
+      // 根据系统平台更新主下载大按钮
+      const heroBtn = document.getElementById('hero-download-btn');
+      const heroText = document.getElementById('hero-download-text');
+      const heroIcon = document.getElementById('hero-download-icon');
+      const navBtn = document.getElementById('nav-download-btn');
+      const platformInfo = document.getElementById('download-platform-info');
+      
+      // 清除可能残留的 active 类
+      document.getElementById('card-win').classList.remove('active');
+      document.getElementById('card-mac').classList.remove('active');
+      document.getElementById('card-linux').classList.remove('active');
+
+      if (detectedOS === 'mac') {
+        heroBtn.setAttribute('href', macDmg);
+        if (navBtn) navBtn.setAttribute('href', macDmg);
+        heroText.innerText = ' 立即下载 macOS 客户端 (.dmg)';
+        heroIcon.innerHTML = svgIcons.mac;
+        if (platformInfo) platformInfo.innerText = '系统: macOS (Apple Silicon)';
+        document.getElementById('card-mac').classList.add('active');
+      } else if (detectedOS === 'linux') {
+        heroBtn.setAttribute('href', linuxAppImage);
+        if (navBtn) navBtn.setAttribute('href', linuxAppImage);
+        heroText.innerText = ' 立即下载 Linux 客户端 (.AppImage)';
+        heroIcon.innerHTML = svgIcons.linux;
+        if (platformInfo) platformInfo.innerText = '系统: Linux x64';
+        document.getElementById('card-linux').classList.add('active');
+      } else {
+        heroBtn.setAttribute('href', winExe);
+        if (navBtn) navBtn.setAttribute('href', winExe);
+        heroText.innerText = ' 立即下载 Windows 客户端 (.exe)';
+        heroIcon.innerHTML = svgIcons.win;
+        if (platformInfo) platformInfo.innerText = '系统: Windows x64 (NSIS)';
+        document.getElementById('card-win').classList.add('active');
+      }
+    }
+    
+    // 自动获取最新版本号
+    fetch('latest.yml')
+      .then(res => res.text())
+      .then(yml => {
+        const match = yml.match(/version:\s*([0-9.]+)/);
+        if (match && match[1]) {
+          currentVersion = match[1];
+        }
+        updateDownloadLinks(currentVersion);
+      })
+      .catch(e => {
+        console.log('读取 latest.yml 失败，采用默认版本链接');
+        updateDownloadLinks(currentVersion);
+      });
+  </script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>版本日志 - unobox 私有通讯系统</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <!-- 发光粒子装饰 -->
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <!-- 导航栏 -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <span>💬 unobox</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">首页</a>
+      <a href="usage.html" class="nav-link">教程</a>
+      <a href="changelog.html" class="nav-link active">版本日志</a>
+      <a href="https://github.com/samjoeyang/unobox-release/releases/download/v0.1.0/unobox-Setup-0.1.0.exe" class="btn-nav-download" id="nav-download-btn">下载</a>
+    </div>
+  </nav>
+
+  <!-- 教程主内容区 -->
+  <main class="container-narrow">
+    <div style="text-align: center; margin-bottom: 60px;">
+      <h1 style="font-family: var(--font-display); font-size: 40px; font-weight: 800; margin: 0 0 10px 0;">版本更新日志</h1>
+      <p style="color: var(--text-secondary); font-size: 16px;"> unobox 所有版本的发布说明均在此归档，每一次迭代都为你带来更安全、更优异的体验。</p>
+    </div>
+
+    <!-- 核心更新日志时间轴 -->
+    <div class="changelog-timeline">
+      
+      <!-- CHANGELOG_START -->
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.1.2</h2>
+          <span class="changelog-date">2026年5月22日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>新增功能</h3>
+          <ul>
+            <li>重构 CI/CD 自动化构建流水线，支持 Windows (.exe) 和 macOS (.dmg, .zip) 跨平台打包与统一发布</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.1.1</h2>
+          <span class="changelog-date">2026年5月22日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>缺陷修复</h3>
+          <ul>
+            <li>修复各 packages 缺少单元测试文件导致 CI 运行失败的问题</li>
+            <li>优化桌面端 CI 编译验证任务，避免在非发布流程下执行耗时的二进制封包提升稳定性</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.1.0</h2>
+          <span class="changelog-date">2026年5月21日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>新增功能</h3>
+          <ul>
+            <li>搭建 unobox 桌面端基础框架（Electron + React + Vite）</li>
+            <li>实现 Telegram 风格的三栏式聊天布局</li>
+            <li>引入 better-sqlite3 本地轻量级数据库存储，支持离线消息缓存</li>
+            <li>搭载 WssServerManager，内置局域网 WebSocket 调试服务端</li>
+            <li>注册设备指纹接口，获取硬件唯一特征 ID</li>
+            <li>实现自定义精美无边框标题栏</li>
+          </ul>
+          <h3>优化与改进</h3>
+          <ul>
+            <li>优化了断网重连时的增量消息及会话状态同步策略</li>
+            <li>提升了暗黑主题自适应流畅度</li>
+          </ul>
+          <h3>缺陷修复</h3>
+          <ul>
+            <li>修复了主进程数据库执行大批量语句时的卡顿问题</li>
+          </ul>
+        </div>
+      </div>
+      <!-- CHANGELOG_END -->
+
+    </div>
+  </main>
+
+  <!-- 底部 -->
+  <footer class="footer">
+    <p>© 2026 unobox Project. 版权所有。源码私有安全托管，构建产物公开静态分发。</p>
+  </footer>
+
+  <script>
+    // 自动根据平台与最新 latest.yml 动态替换导航栏下载链接
+    let currentVersion = '0.1.0';
+    
+    function getOS() {
+      if (navigator.userAgentData && navigator.userAgentData.platform) {
+        const platform = navigator.userAgentData.platform.toLowerCase();
+        if (platform.includes('mac')) return 'mac';
+        if (platform.includes('linux')) return 'linux';
+        if (platform.includes('win')) return 'win';
+      }
+      
+      const ua = navigator.userAgent.toLowerCase();
+      if (ua.indexOf('macintosh') >= 0 || ua.indexOf('mac os') >= 0) return 'mac';
+      if (ua.indexOf('linux') >= 0 && ua.indexOf('android') === -1) return 'linux';
+      return 'win'; // 默认 Windows
+    }
+    
+    const detectedOS = getOS();
+    
+    function updateNavDownload(version) {
+      let downloadUrl = `https://github.com/samjoeyang/unobox-release/releases/download/v${version}/unobox-Setup-${version}.exe`;
+      if (detectedOS === 'mac') {
+        downloadUrl = `https://github.com/samjoeyang/unobox-release/releases/download/v${version}/unobox-${version}-arm64.dmg`;
+      } else if (detectedOS === 'linux') {
+        downloadUrl = `https://github.com/samjoeyang/unobox-release/releases/download/v${version}/unobox-${version}.AppImage`;
+      }
+      const navBtn = document.getElementById('nav-download-btn');
+      if (navBtn) navBtn.setAttribute('href', downloadUrl);
+    }
+    
+    fetch('latest.yml')
+      .then(res => res.text())
+      .then(yml => {
+        const match = yml.match(/version:\s*([0-9.]+)/);
+        if (match && match[1]) {
+          currentVersion = match[1];
+        }
+        updateNavDownload(currentVersion);
+      })
+      .catch(e => {
+        console.log('读取 latest.yml 失败');
+        updateNavDownload(currentVersion);
+      });
+  </script>
+</body>
+</html>

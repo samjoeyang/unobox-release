@@ -1,8 +1,8 @@
 version: 0.1.0
 files:
   - url: https://github.com/samjoeyang/unobox-release/releases/download/v0.1.0/unobox-Setup-0.1.0.exe
-    sha512: ikMGqlfg/hkfKTKJXXe2Ug5jIPgGOptAkTuSpYBysr4D2fPIXCKePhs3zNZAPIDRj73lC2zgEBir1brjgXjQhQ==
-    size: 95112671
+    sha512: u3Go9RuUi7rKuhIPC8ldwpKyY2gx4MdUaPdbqmtjs5o9SwgEYcO2LB7uYOsM6+FseTGDaIHBJJURc0ORTvE3DA==
+    size: 95112872
 path: https://github.com/samjoeyang/unobox-release/releases/download/v0.1.0/unobox-Setup-0.1.0.exe
-sha512: ikMGqlfg/hkfKTKJXXe2Ug5jIPgGOptAkTuSpYBysr4D2fPIXCKePhs3zNZAPIDRj73lC2zgEBir1brjgXjQhQ==
-releaseDate: '2026-05-22T15:09:53.102Z'
+sha512: u3Go9RuUi7rKuhIPC8ldwpKyY2gx4MdUaPdbqmtjs5o9SwgEYcO2LB7uYOsM6+FseTGDaIHBJJURc0ORTvE3DA==
+releaseDate: '2026-05-22T16:34:35.662Z'

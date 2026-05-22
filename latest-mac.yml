@@ -1,11 +1,11 @@
 version: 0.1.0
 files:
   - url: https://github.com/samjoeyang/unobox-release/releases/download/v0.1.0/unobox-0.1.0-arm64-mac.zip
-    sha512: fcnwpjYx9YnnF5uOqbb1qZ2iPcaQjU3eToUyqnfUWAFxNg/K+yBqY5CzxNWOPrax/nCI1ezEzX8R4kNmwcYvMw==
-    size: 114998850
+    sha512: ObOB2h+u5+U+Banf1Rd5v9qScDcliCQemJHllaNvVXCRrDzZIZnLV9FgYWzfV79NQqHN+MwMOz2oRLLPd+hXLA==
+    size: 114998825
   - url: https://github.com/samjoeyang/unobox-release/releases/download/v0.1.0/unobox-0.1.0-arm64.dmg
-    sha512: 2XICn40NFOdCnPcrNizzz5BXxYZCX+s4uhknbj8W0GDCk31OCBzsXedwbMcS9QlZkx5v8Ea25/uSe1VgzlgnZA==
-    size: 120776989
+    sha512: D6sCEKvckO7KRLIOVSyEI/8V26mPr+6NM1uy9gaF8/CgyPLT73HeMMFDkoKZ+3Pq+JYo4+UVEsrFEXGO5Z83NA==
+    size: 120777017
 path: https://github.com/samjoeyang/unobox-release/releases/download/v0.1.0/unobox-0.1.0-arm64-mac.zip
-sha512: fcnwpjYx9YnnF5uOqbb1qZ2iPcaQjU3eToUyqnfUWAFxNg/K+yBqY5CzxNWOPrax/nCI1ezEzX8R4kNmwcYvMw==
-releaseDate: '2026-05-22T15:08:22.879Z'
+sha512: ObOB2h+u5+U+Banf1Rd5v9qScDcliCQemJHllaNvVXCRrDzZIZnLV9FgYWzfV79NQqHN+MwMOz2oRLLPd+hXLA==
+releaseDate: '2026-05-22T16:32:51.091Z'

@@ -38,28 +38,423 @@
 
       <div class="glass-card changelog-card">
         <div class="changelog-header">
-          <h2 class="changelog-version">v0.1.0</h2>
-          <span class="changelog-date">2026年5月21日</span>
+          <h2 class="changelog-version">v内置浏览器</h2>
+          <span class="changelog-date">2026年6月2日</span>
         </div>
         <div class="changelog-body">
-          <h3>新增功能</h3>
+          <h3>内置浏览器窗口</h3>
+          <p>聊天消息中的 URL 自动识别为可点击链接，点击弹出独立 BrowserWindow 加载目标网站，自动嗅探页面中的视频资源并支持在线播放。</p>
           <ul>
-            <li>搭建 unobox 桌面端基础框架（Electron + React + Vite）</li>
-            <li>实现 Telegram 风格的三栏式聊天布局</li>
-            <li>引入 better-sqlite3 本地轻量级数据库存储，支持离线消息缓存</li>
-            <li>搭载 WssServerManager，内置局域网 WebSocket 调试服务端</li>
-            <li>注册设备指纹接口，获取硬件唯一特征 ID</li>
-            <li>实现自定义精美无边框标题栏</li>
+            <li>**链接识别**：`TextContent` 组件自动解析消息文本中的 HTTP/HTTPS URL，渲染为蓝色可点击链接，派发 `open-browser` 自定义事件</li>
+            <li>**独立窗口**：BrowserWindow 直接加载目标 URL，原生窗口框架，使用独立 `persist:browser` session 持久化 Cookie/Storage</li>
+            <li>**工具栏**：前进/后退/刷新、地址栏（输入新 URL 跳转）、关闭窗口、系统浏览器打开（`shell.openExternal`）、Ctrl+L 聚焦地址栏</li>
+            <li>**持久登录态**：`persist:browser` 分区，所有浏览器窗口共享 Cookie，重启应用后登录态保持</li>
           </ul>
-          <h3>优化与改进</h3>
+          <h3>三层视频嗅探</h3>
+          <p>| 嗅探层 | 位置 | 方式 |</p>
+          <p>|--------|------|------|</p>
+          <p>| webRequest URL | 主进程 `onBeforeRequest` | 正则匹配 `.mp4/.m3u8/.mpd/.flv/.webm/.mkv/.mov/.avi` |</p>
+          <p>| webRequest Content-Type | 主进程 `onHeadersReceived` | 匹配 `video/*`、`audio/*`、`application/x-mpegURL`、`application/dash+xml` |</p>
+          <p>| 主世界 JS 注入 | `executeJavaScript` | 劫持 `fetch`/`XMLHttpRequest` + 扫描 `<video>`/`<source>` 标签，通过 `window.postMessage` 回传 |</p>
+          <h3>M3U8 校验与结果展示</h3>
           <ul>
-            <li>优化了断网重连时的增量消息及会话状态同步策略</li>
-            <li>提升了暗黑主题自适应流畅度</li>
+            <li>**M3U8 异步校验**：嗅探到 `.m3u8` 链接后 `fetch()` 验证，检查响应内容含 `#EXTM3U`/`#EXTINF` → 标记 valid/invalid</li>
+            <li>**TS/M4S 分片过滤**：`.ts`/`.m4s` 流媒体分片直接过滤，不显示在嗅探列表</li>
+            <li>**页面导航刷新**：URL 跳转时自动清空旧结果，重新嗅探新页面</li>
           </ul>
-          <h3>缺陷修复</h3>
+          <p>| 链接类型 | 状态 | 图标 | 点击行为 |</p>
+          <p>|----------|------|:--:|---------|</p>
+          <p>| MP4/MKV/WebM 等 | — | ▶ 蓝 | 弹出播放器 + 复制链接 |</p>
+          <p>| M3U8 校验通过 | valid | ▶ 蓝 | 弹出播放器 + 复制链接 |</p>
+          <p>| M3U8 校验失败 | invalid | 🚫 灰 | 仅复制链接 |</p>
+          <p>| M3U8 校验中 | checking | ⏳ 黄 | 仅复制链接 |</p>
+          <h3>视频播放集成</h3>
           <ul>
-            <li>修复了主进程数据库执行大批量语句时的卡顿问题</li>
+            <li>**弹出播放器**：点击可播放条目 → 暂停页面中视频 → 新建 BrowserWindow 加载 VideoPlayer 组件（`?player=1&src=...`）</li>
+            <li>**HLS/M3U8 支持**：VideoPlayer 新增 HLS 动态解码（`import('hls.js') → hls.loadSource() + hls.attachMedia()`），hls.js 未安装时回退 Safari 原生</li>
+            <li>**standalone 模式**：`<VideoPlayer standalone>` 解除内联尺寸限制（maxWidth 280→100%、maxHeight 200→100vh），自动播放</li>
+            <li>**不可播放条目**：仍可点击复制链接到剪贴板，蓝色高亮反馈 600ms</li>
           </ul>
+          <h3>请求安全与反检测</h3>
+          <ul>
+            <li>**请求头伪装**：UA 替换为标准 Chrome 131，自动补齐 Referer</li>
+            <li>**弹窗拦截**：`window.open()`/`target="_blank"` 全部在当前窗口内导航</li>
+            <li>**独立 Session**：`session.fromPartition('persist:browser')`，主窗口 CSP 不影响浏览器窗口</li>
+            <li>**反检测脚本**（主世界注入）：覆盖 11 项特征（`navigator.webdriver`→false、补充 `window.chrome`、补全 `navigator.plugins` 等）</li>
+          </ul>
+          <h3>架构演进</h3>
+          <p>| 尝试 | 问题 | 结论 |</p>
+          <p>|------|------|------|</p>
+          <p>| `<webview>` + React | DOM 对账冲突→ERR_ABORTED、焦点抢占 | 废弃 |</p>
+          <p>| BrowserView + 透明窗口 | `transparent:true`→macOS 窗口消失 | 废弃 |</p>
+          <p>| preload 中 XHR/Fetch 劫持 | `contextIsolation:true` 下只影响隔离世界 | 改为主世界 `executeJavaScript` |</p>
+          <p>| `all:initial` CSS | SVG 图标放大、继承混乱 | 改为精确属性重置 |</p>
+          <h3>涉及文件</h3>
+          <p>| 文件 | 说明 |</p>
+          <p>|------|------|</p>
+          <p>| `apps/desktop/src/preload/browser.ts` | **新增** — 浏览器窗口 preload（工具栏 + 嗅探面板 + postMessage 监听） |</p>
+          <p>| `apps/desktop/src/main/index.ts` | 7 个 browser IPC；主世界嗅探脚本注入；persist:browser session |</p>
+          <p>| `apps/desktop/src/preload/index.ts` | `api.browser.{open, openExternally, openPlayer, onPlayVideoInChat}` |</p>
+          <p>| `apps/desktop/src/renderer/src/components/MessageBubble.tsx` | `TextContent`：URL 识别 + `open-browser` 事件 |</p>
+          <p>| `apps/desktop/src/renderer/src/components/VideoPlayer.tsx` | `standalone` 模式 + HLS 动态解码 |</p>
+          <p>| `apps/desktop/src/renderer/src/App.tsx` | `open-browser` 监听 + `?player=1` 播放器窗口 |</p>
+          <p>| `apps/desktop/electron.vite.config.ts` | preload 多入口（`index.ts` + `browser.ts`） |</p>
+          <p>| `apps/desktop/package.json` | 新增 `hls.js` 依赖 |</p>
+          <p>---</p>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v视频播放与媒体处理</h2>
+          <span class="changelog-date">2026年5月31日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>FFmpeg/FFprobe 集成</h3>
+          <ul>
+            <li>**捆绑分发**：`@ffmpeg-installer/ffmpeg` + `@ffprobe-installer/ffprobe` 随应用分发预编译二进制</li>
+            <li>**视频编码探测**：上传时自动检测编码器（FFprobe → VideoMeta）</li>
+            <li>**HEVC/Dolby Vision 转码**：`hevc`/`hvc1`/`dvh1`/`dvhe` → 后台异步 H.264 SDR 转码</li>
+            <li>**封面缩略图**：自动提取视频首帧作为消息气泡封面（`<video poster>`）</li>
+            <li>**视频笔记生成**：圆形裁剪 + 静音 + 60s 限制，对标 Telegram video_note</li>
+          </ul>
+          <h3>自定义视频播放器</h3>
+          <ul>
+            <li>替换原生 `<video controls>` 为自建 VideoPlayer 组件，inline/全屏控件一致</li>
+            <li>**控件栏**：播放/暂停、可拖拽进度条（缓冲+播放双图层）、倍速、音量、全屏</li>
+            <li>**全屏**：3s 自动隐藏控件，ESC 退出，键盘快捷键（Space/←→/↑↓/F）</li>
+            <li>**播放进度记忆**：localStorage 持久化，重开视频从上次位置继续</li>
+            <li>**附件丢失 UI**：文件被清理后显示图标+文件名+"无法找到"占位，停止重试循环</li>
+            <li>**视频播放方式设置**：内置播放器 / 系统播放器（IINA 等），设置→数据与存储</li>
+          </ul>
+          <h3>字幕系统</h3>
+          <ul>
+            <li>**内嵌字幕提取**：FFprobe 探测 → FFmpeg 提取文本字幕为 WebVTT → `<track>` 渲染</li>
+            <li>**外挂字幕上传**：右键菜单/⋮ 菜单 → .srt/.vtt/.ass/.ssa → FFmpeg 转 VTT</li>
+            <li>**PGS 位图字幕**：可探测列出，标记"待支持"（Chromium 无法渲染位图）</li>
+            <li>**字幕管理**：单选模式，来源标记（内嵌/外挂），活跃轨道高亮 ✓</li>
+          </ul>
+          <h3>unbox-file:// 协议增强</h3>
+          <ul>
+            <li>**Range 请求支持**：206 Partial Content + `bytes=start-end`，分段读取，支持视频流播和 seek</li>
+            <li>**大文件保护**：单次响应上限 200MB，超大文件自动流式传输避免 OOM</li>
+            <li>**路径编码修复**：`pathToUrl()` 逐段 percent-encode，兼容路径中 `@` 等特殊字符</li>
+            <li>**附件同步清理**：删除聊天消息时自动清理 mediaUrl/thumbnailUrl/subtitleTracks 文件</li>
+            <li>**附件丢失检测**：图片/GIF/视频笔记加载失败时显示 fallback UI</li>
+          </ul>
+          <h3>设置页调整</h3>
+          <ul>
+            <li>**移除 FFmpeg 开关**：FFmpeg 为默认且唯一方案，不再需要用户手动选择</li>
+            <li>**新增视频播放方式**：设置→数据与存储→内置播放器/系统播放器</li>
+          </ul>
+          <p>---</p>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v文件预览系统增强</h2>
+          <span class="changelog-date">2026年5月28日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>Office 文档在线预览</h3>
+          <ul>
+            <li>**Word (.docx) 预览**：新增 `DocPreview` 组件，基于 `mammoth` 将 .docx 转为 HTML 渲染，跟随主题适配深浅色</li>
+            <li>**Excel (.xlsx/.csv) 预览**：新增 `SheetPreview` 组件，基于 `xlsx` 解析为 HTML 表格，固定浅色主题保证可读性</li>
+            <li>支持多 sheet 切换（Tab 标签栏）</li>
+            <li>奇数行/偶数行底色交替，灰色边框</li>
+            <li>**PPT (.pptx/.ppt)**：降级为"用系统应用打开"</li>
+            <li>**旧格式（.doc/.xls/.mobi）**：不支持预览，给出转换建议提示</li>
+          </ul>
+          <h3>Office 预览方式设置</h3>
+          <ul>
+            <li>设置 → 数据与存储新增"Office 文档预览"选项：内置预览（默认）/ 系统应用</li>
+            <li>设置持久化到 `localStorage`，切换即时生效</li>
+          </ul>
+          <h3>EPUB 电子书阅读增强</h3>
+          <ul>
+            <li>**主题跟随**：深色/浅色主题自动切换 iframe 内配色</li>
+            <li>**字号缩放**：60%~200%，步进 10%，通过 epubjs `themes.fontSize()` 实现</li>
+            <li>**行距调节**：紧密(1.3) / 标准(1.6) / 宽松(2.0)，通过 `themes.override()` 实现</li>
+            <li>**阅读位置记忆**：CFI 位置持久化到 localStorage，重新打开自动跳转</li>
+            <li>**字号/行距持久化**：关闭后重新打开保持设置</li>
+            <li>**分阶段加载动画**：加载电子书… → 正在排版… → 正在分页… → 恢复阅读位置…，带旋转圆环动画</li>
+            <li>**页码追踪**：`rendition.on('relocated')` + `locations.locationFromCfi()` 精确映射</li>
+            <li>**DOM 结构修复**：viewer div 始终渲染（`visibility: hidden` 替代 DOM 移除），解决 ref 为 null 的问题</li>
+          </ul>
+          <h3>代码质量提升</h3>
+          <ul>
+            <li>**抽取 `useFileContent` Hook**：`useFileText` / `useFileBuffer`，消除四组件重复代码，内置 HTTP 缓存</li>
+            <li>**`file-type` 内容检测兜底**：扩展名 + MIME 无法识别时读取文件头 magic bytes</li>
+            <li>**大文本保护**：TextPreview >500KB 截断 + 警告条</li>
+          </ul>
+          <h3>端口自动查找</h3>
+          <ul>
+            <li>`portUtils.ts`：`findAvailablePort(startPort)` 探测可用端口</li>
+            <li>内置 WSS + 独立 WS 启动前先查找，被占用自动递增</li>
+            <li>Store 接收实际端口并更新 `serverConfigs` 持久化</li>
+            <li>默认端口 8080 → 8090，避免与 Expo Metro (8081) 冲突</li>
+          </ul>
+          <h3>独立预览窗口</h3>
+          <ul>
+            <li>IPC `window:open-preview` 创建独立 BrowserWindow（960×720）</li>
+            <li>`main.tsx` URL 参数 `?preview=1` 分流渲染</li>
+            <li>`FilePreview` 新增 `embedded` prop 适配独立窗口模式</li>
+          </ul>
+          <h3>其他</h3>
+          <ul>
+            <li>CSP `style-src` 新增 `blob:` 来源</li>
+            <li>`db:run` / `db:exec` 对"duplicate column name"不抛错</li>
+            <li>移除废弃的 `@types/react-native@0.73.0`</li>
+          </ul>
+          <p>---</p>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.1.0</h2>
+          <span class="changelog-date">2026年5月7日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>概述</h3>
+          <p>unobox是作者一个人在空闲时间开发的项目，目前仅支持桌面端的即时通讯应用。本项目从构思到第一个版本发布，耗时近20天，是用多个AI Agent复合在一起的自动开发项目，按照构思时所整理的需求，通过AI整理思路、功能等，再通过多个AI全程自动实现、测试、调试等开发工作。</p>
+          <p>使用到的AI有(按照使用比重排序)：</p>
+          <p>* 1、Claude</p>
+          <p>* 2、Antigravity</p>
+          <p>* 3、Claude Code</p>
+          <p>* 4、Gemini</p>
+          <p>* 5、豆包</p>
+          <p>* 6、DeepSeek</p>
+          <p>* 7、Grok</p>
+          <p>* 8、Copilot</p>
+          <h3>产品简介</h3>
+          <p>unobox 是一款仿照 Telegram 功能设计的**跨平台私有即时通讯应用**，支持用户自主选择和管理通讯服务后端。首个版本涵盖桌面端（Electron + React），移动端尚处于脚手架阶段。</p>
+          <p>**核心价值主张：**</p>
+          <ul>
+            <li>**隐私优先**：数据由用户自主控制，支持纯本地存储模式</li>
+            <li>**灵活部署**：支持 WebSocket、Matrix 等多种后端，可随时切换</li>
+            <li>**功能完整**：复刻 Telegram 核心功能，包括 Bot、Channel、群组等</li>
+            <li>**跨平台**：Windows / macOS / Linux 全平台支持（桌面端）</li>
+          </ul>
+          <p>---</p>
+          <h3>平台与技术</h3>
+          <p>| 组件 | 技术方案 |</p>
+          <p>|------|---------|</p>
+          <p>| 桌面端 | Electron 32+ + React 18+ + TypeScript 5+ |</p>
+          <p>| 移动端 | Expo 52+ + React Native 0.76+（脚手架） |</p>
+          <p>| 共享核心 | TypeScript（packages/core） |</p>
+          <p>| 状态管理 | Zustand |</p>
+          <p>| 构建工具 | Turborepo + pnpm |</p>
+          <p>| 数据库 | better-sqlite3（桌面端） |</p>
+          <p>---</p>
+          <h3>服务端架构</h3>
+          <ul>
+            <li>**IServerProvider 统一接口**：所有服务端通信通过统一接口实现，用户可在 UI 中增减服务器。</li>
+            <li>**ProviderManager**：多服务器管理核心，支持热插拔。</li>
+            <li>**启动引导**：首次启动时强制进入 OnboardingView 配置向导，至少配置一个服务器后方可进入主界面。</li>
+            <li>**单服务器激活模式**：从用户头像菜单切换当前激活的服务器，切换后界面内容自动刷新。</li>
+          </ul>
+          <p>**已实现的 Provider：**</p>
+          <ul>
+            <li>**WebSocketProvider**：自建 WebSocket 服务端连接器，支持多房间、实时消息广播、文件传输（Base64）、Token 鉴权。</li>
+            <li>**LocalProvider**：纯本地存储模式，基于 SQLite，数据保存在设备本地，完全离线可用。</li>
+            <li>**MatrixProvider**：Matrix（Synapse）协议适配，支持房间管理、消息收发、成员管理，端到端加密待实现。</li>
+            <li>**UnsupportedProvider**：Rocket.Chat / Nextcloud Talk 占位适配器，待 Phase 2 实现。</li>
+          </ul>
+          <p>**内置 WebSocket 服务端（`backend/ws-server`）：**</p>
+          <ul>
+            <li>多房间消息广播</li>
+            <li>局域网 HTTP 文件直链共享</li>
+            <li>Channel 发言权限控制（owner/admin 可发言）</li>
+            <li>Channel 消息可见性控制（非成员不可读）</li>
+            <li>系统消息生成（加入/创建频道通知）</li>
+            <li>Token 鉴权 + UUID 文件防冲突</li>
+          </ul>
+          <p>---</p>
+          <h3>消息功能</h3>
+          <p>**基础消息类型：**</p>
+          <ul>
+            <li>文本消息（支持 Markdown 渲染：粗体、斜体、代码块、代码行）</li>
+            <li>图片消息（发送原图或压缩图）</li>
+            <li>视频消息（内置播放器）</li>
+            <li>语音消息（录制、播放、波形显示）</li>
+            <li>视频圆形气泡（Video Note，仿 Telegram 圆形视频，muted/autoPlay/loop）</li>
+            <li>文件发送（任意格式，显示文件名、大小、类型图标）</li>
+            <li>GIF 动图（图片渲染 + 左上角 GIF 标签，附件菜单支持 image/gif）</li>
+            <li>Emoji 表情</li>
+          </ul>
+          <p>**消息操作：**</p>
+          <ul>
+            <li>引用回复（显示被引用消息预览）</li>
+            <li>消息转发（ForwardModal 选择目标房间，支持跨房间转发）</li>
+            <li>编辑已发送消息（显示"已编辑"标记）</li>
+            <li>删除消息（仅自己 / 双端删除）</li>
+            <li>固定消息（Pin）</li>
+            <li>消息已读状态（✓ 已发送 / ✓✓ 已读）</li>
+            <li>消息表情反应（Reactions）</li>
+            <li>消息定时发送（InputBar 时钟按钮 + datetime-local 选择器 + 客户端 setTimeout 调度）</li>
+            <li>消息搜索（聊天内 / 全局，客户端过滤）</li>
+            <li>消息跳转（点击引用 scrollIntoView + 2s 蓝色高亮闪烁）</li>
+            <li>右键 / 长按消息菜单</li>
+          </ul>
+          <p>**媒体处理：**</p>
+          <ul>
+            <li>图片查看器（全屏浮层，滚轮缩放 25%-500%，拖拽平移，旋转，下载）</li>
+            <li>发送前预览媒体文件</li>
+            <li>多图 / 多文件批量发送</li>
+            <li>拖拽发送文件（拖拽到聊天窗口直接发送，拖拽到会话列表项自动切换会话，蓝色高亮视觉反馈）</li>
+          </ul>
+          <p>---</p>
+          <h3>聊天列表</h3>
+          <ul>
+            <li>显示所有聊天类型（私聊、群组、Channel）</li>
+            <li>未读消息计数徽章</li>
+            <li>最后一条消息预览</li>
+            <li>最后活跃时间</li>
+            <li>置顶聊天</li>
+            <li>聊天静音</li>
+            <li>聊天文件夹（Folders）：</li>
+            <li>系统默认文件夹：所有、频道、群组、未读</li>
+            <li>自定义文件夹（自定义名称、包含的会话类型/特定会话）</li>
+            <li>聊天搜索</li>
+          </ul>
+          <p>---</p>
+          <h3>群组（Group）</h3>
+          <ul>
+            <li>创建群组（名称、头像、描述）</li>
+            <li>邀请成员</li>
+            <li>成员管理（踢出、设置管理员、修改角色）</li>
+            <li>管理员权限配置（6 项权限：修改群信息、删除消息、封禁成员、邀请成员、置顶消息、管理管理员）</li>
+            <li>群公告（群主/管理员可编辑，聊天区顶部持久展示，支持编辑/移除/折叠）</li>
+            <li>群内搜索成员（RoomInfoModal 实时搜索框，按 displayName/username 过滤）</li>
+            <li>离开 / 解散群组</li>
+            <li>话题模式（Topics，仿 Telegram Supergroup）：超群包含子话题房间，支持创建/列表/进入/返回</li>
+            <li>群投票（Poll）：创建投票（单选/多选/定时开始/定时结束），实时百分比进度条，关闭投票</li>
+            <li>发言冷却（Slow Mode）：可配置 10s~1h 冷却时长，InputBar 倒计时锁定</li>
+          </ul>
+          <p>---</p>
+          <h3>Channel（频道）</h3>
+          <p>创建 Channel 时必须选择存储模式：</p>
+          <p>**模式 A：与服务器同步（📡）**</p>
+          <ul>
+            <li>内容发布到已选择的服务器</li>
+            <li>支持多端实时订阅</li>
+            <li>支持他人订阅（公开 Channel）</li>
+            <li>支持 Bot 集成</li>
+          </ul>
+          <p>**模式 B：仅保存在本地（💾）**</p>
+          <ul>
+            <li>数据保存在设备本地（SQLite）</li>
+            <li>无需网络连接即可使用</li>
+            <li>适合个人日志、笔记、草稿</li>
+            <li>支持导出（JSON/Markdown）</li>
+            <li>支持 Bot 本地处理</li>
+          </ul>
+          <p>**已实现的 Channel 功能：**</p>
+          <ul>
+            <li>发布帖子（文章、图文混排）</li>
+            <li>定时发布</li>
+            <li>编辑 / 删除已发布内容</li>
+            <li>查看阅读量（Message.readCount + 消息气泡显示"已阅读 N"）</li>
+            <li>评论区（关联讨论群 + 右侧 40% 评论面板）</li>
+            <li>订阅者管理（RoomInfoModal 订阅者标签页 + 移除按钮 + joinedAt 显示）</li>
+            <li>Channel 统计（ChannelStatsModal：总览卡片 + 频率柱状图 + 活跃热力图 + 发言者排行）</li>
+            <li>多管理员协作（updateMemberRole 接口 + RoomInfoModal 角色下拉选择器）</li>
+          </ul>
+          <p>---</p>
+          <h3>Bot 框架</h3>
+          <p>**Bot 注册与管理：**</p>
+          <ul>
+            <li>Bot 注册（名称、头像、命令前缀、Webhook URL、命令列表）</li>
+            <li>Bot 删除（`unregisterBot` 接口，LocalProvider/WebSocketProvider 完整实现）</li>
+            <li>BotManageModal UI（注册、命令管理、删除、内联键盘配置）</li>
+            <li>InputBar 命令提示（输入 `/` 时实时过滤匹配命令）</li>
+            <li>本地存储 Channel 可接入本地处理 Bot（无需网络）</li>
+          </ul>
+          <p>**Bot 命令处理：**</p>
+          <ul>
+            <li>Provider 层 `onBotCommand` 事件监听</li>
+            <li>App.tsx 订阅 `onBotCommand`，实现全自动 Bot 回复</li>
+            <li>内置命令支持：`/help`（列出命令）、`/ping`（连通性）、`/echo`（回显）、`/time`（时间）</li>
+            <li>Webhook 模式：配置 `webhookUrl` 的 Bot 委托给外部 HTTP 服务处理</li>
+            <li>防递归：Bot 回复消息标记 `botId`，不会再次触发命令处理</li>
+          </ul>
+          <p>**Bot 内联键盘（新增）：**</p>
+          <ul>
+            <li>类型系统：`InlineKeyboardButton`、`InlineKeyboardMarkup`、`CallbackQuery`</li>
+            <li>`MessageContent.replyMarkup` 字段，支持在消息下方渲染可点击按钮</li>
+            <li>MessageBubble 内联键盘渲染：URL 按钮（`<a>` 新标签打开）、回调按钮（`<button>` 点击触发回调）</li>
+            <li>ChatView 内联回调处理：`handleInlineCallback` → `answerCallbackQuery` → 刷新消息</li>
+            <li>App.tsx `onCallbackQuery` 订阅：点击按钮后自动编辑消息（更新文本 + 移除键盘）</li>
+            <li>LocalProvider 完整实现：`answerCallbackQuery` + `onCallbackQuery`</li>
+            <li>WebSocketProvider 代理：`answer_callback_query` / `callback_query` 消息类型</li>
+            <li>BotManageModal 内联键盘配置 UI：展开面板、添加行、添加按钮（文字 + 回调数据）</li>
+            <li>BotConfig 扩展 `inlineKeyboard` 字段，注册时保存，回复时自动附带</li>
+          </ul>
+          <p>**WS 服务端 Bot 存储（从占位升级为完整实现）：**</p>
+          <ul>
+            <li>新增 `bots` Map（`StoredBot` 接口）</li>
+            <li>`register_bot`：解析 payload → 写入 Map → 返回 `{ success, botId }`</li>
+            <li>`get_bots`：按 roomId 过滤返回 Bot 列表</li>
+            <li>`unregister_bot`：从 Map 中删除</li>
+            <li>`send_message` 中 Bot 命令检测：文本以 `/` 开头时遍历 bots Map 匹配命令，广播 `bot_command` 事件</li>
+          </ul>
+          <p>待实现：Bot 权限控制、Bot 定时发布、MatrixProvider Bot 完整实现</p>
+          <p>---</p>
+          <h3>AI 智能聊天（计划外已实现）</h3>
+          <ul>
+            <li>**8 种 AI 接口支持**：OpenAI / Gemini / Claude / DeepSeek / OpenRouter / Qwen / MiniMax / 自定义</li>
+            <li>**三种 API 协议适配**：OpenAI 兼容格式、Gemini generateContent、Claude Messages</li>
+            <li>**AI 接口配置管理**（添加/编辑/删除/测试连接/获取模型列表）</li>
+            <li>**流式输出**：Electron 主进程 ReadableStream + IPC 事件逐块推送，逐 token 追加到气泡，支持中途取消</li>
+            <li>**AI 会话持久化**：会话和消息存储至 SQLite，刷新/重启后完整恢复历史消息和活跃会话</li>
+            <li>**思考过程展示**：DeepSeek R1 reasoning_content / Claude Extended Thinking，可折叠面板实时显示推理过程</li>
+            <li>**跨接口会话独立**：每个会话绑定特定 AI 接口 + 模型，切换会话即切换上下文</li>
+          </ul>
+          <p>---</p>
+          <h3>服务器管理</h3>
+          <ul>
+            <li>服务器列表（显示类型、状态、连接延迟）</li>
+            <li>添加服务器向导（选择类型 → 填写配置 → 测试连接 → 保存）</li>
+            <li>编辑服务器配置</li>
+            <li>删除服务器（确认对话框）</li>
+            <li>连接 / 断开切换</li>
+            <li>服务器类型标识（Matrix 图标、WS 图标等）</li>
+            <li>连接状态指示（绿色/黄色/红色）</li>
+          </ul>
+          <p>---</p>
+          <h3>UI/UX</h3>
+          <ul>
+            <li>**布局**：三栏式桌面端布局（功能导航栏 60px + 聊天列表 320px + 聊天区域）</li>
+            <li>**主题**：深色主题（默认）/ 浅色主题，字体大小可调节，Zustand 持久化</li>
+            <li>**侧边栏**：文件夹图标列表，点击快速筛选会话；顶部头像弹出菜单（个人信息、服务器切换、设置入口）</li>
+            <li>**自定义无边框标题栏**</li>
+            <li>**消息气泡**：两种颜色区分自己/他人消息</li>
+          </ul>
+          <p>---</p>
+          <h3>工程与基础设施</h3>
+          <ul>
+            <li>**Monorepo 结构**：apps/desktop + apps/mobile + packages/core + packages/ui-web + packages/ui-mobile + backend/</li>
+            <li>**CI/CD**：GitHub Actions 自动构建（Linux AppImage/deb/rpm），跨仓库 Release 自动发布</li>
+            <li>**自动更新**：Electron autoUpdater 集成 + UpdateModal 更新提示弹窗</li>
+            <li>**静态官网**：`web/` 目录，含跨平台下载页、使用说明、更新日志，响应式适配</li>
+            <li>**安全增强**：Content-Security-Policy 配置（HTML meta + session.webRequest 响应头注入），WS 服务端用户身份兜底匹配</li>
+          </ul>
+          <p>---</p>
+          <h3>已知限制</h3>
+          <p>以下功能尚未实现或仅有 Provider 层接口而缺 UI：</p>
+          <ul>
+            <li>联系人列表与用户资料页（占位页面）</li>
+            <li>贴纸（Sticker）</li>
+            <li>图片编辑器（裁剪、文字、涂鸦）</li>
+            <li>语音/视频通话（Phase 2）</li>
+            <li>移动端完整功能（仅 Expo 脚手架）</li>
+            <li>Bot 权限控制</li>
+            <li>MatrixProvider Bot 完整实现（当前为占位）</li>
+            <li>端到端加密（本地模式）</li>
+          </ul>
+          <p>---</p>
         </div>
       </div>
       <!-- CHANGELOG_END -->

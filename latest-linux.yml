@@ -1,15 +1,15 @@
 version: 0.1.0
 files:
   - url: unobox_0.1.0.AppImage
-    sha512: 8wJbTEMcZMPI2JPVCtD+v5v5HowML+53kVzcBJ3sQ+/KBPwCOQBIRi2L3dQG4AZOjs18cuYAd2h/c4cXkep10g==
-    size: 130662377
-    blockMapSize: 135165
+    sha512: WxwhhVM7sEsSNWkpNag73msVBMZnMaBA6X8V1xsjlY3neHM0AdUBsYeV88w/NYiiC9IGa/vQQDuRmWa1ohis2g==
+    size: 236737133
+    blockMapSize: 246401
   - url: unobox_0.1.0.deb
-    sha512: EfslmvQQdRJCdyfsB771yg3ilVgO3raPu6t9LWiVRlz+eizS6gyb8ctNsDRCvAItoHyQJ8P/oXB6ncko5Ffvkw==
-    size: 87849574
+    sha512: Vm0DkiR2zLB09R/4jMh9IBmPHfciEBSTPzrqX3ZGg6qr9groCW/99snJhHKuBMe3LqRQ90LIUd+a+oqzS6QKsw==
+    size: 150612940
   - url: unobox_0.1.0.rpm
-    sha512: kGjDTKXuCC5XChdvNXxs8QvvAKsGtsuLbOJPxwI59zDlD4nTWSrVcI68Bge872wmrF8iOg+V/DI/JIvpaasTWg==
-    size: 86652897
+    sha512: nXcvoMBo5WDPANrIMWsRbEvzFlrTa9Eaa4sJQTvrD5UXzB5D2my0LJKLXlLhIAcjEAOHulw0s+HLSvnjsU+GEA==
+    size: 152947965
 path: unobox_0.1.0.AppImage
-sha512: 8wJbTEMcZMPI2JPVCtD+v5v5HowML+53kVzcBJ3sQ+/KBPwCOQBIRi2L3dQG4AZOjs18cuYAd2h/c4cXkep10g==
-releaseDate: '2026-05-22T16:35:58.051Z'
+sha512: WxwhhVM7sEsSNWkpNag73msVBMZnMaBA6X8V1xsjlY3neHM0AdUBsYeV88w/NYiiC9IGa/vQQDuRmWa1ohis2g==
+releaseDate: '2026-06-04T14:33:10.520Z'

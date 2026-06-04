@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>unobox - 跨平台私有即时通讯应用官网</title>
-  <meta name="description" content="unobox 是一款极速、安全的 Telegram 风格跨平台私有即时通讯应用，支持局域网发现与多服务端 Provider 连接。">
+  <meta name="description" content="unobox 是一款极速、安全的 Telegram 风格跨平台私有即时通讯应用，集成 8 种 AI 模型、全格式文件预览、内置浏览器智能嗅探，支持多协议 Provider 弹性接入。">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -29,7 +29,7 @@
   <section class="hero">
     <div class="badge-version">LATEST VERSION v0.1.0</div>
     <h1>私密即时通讯，由你掌控</h1>
-    <p>unobox 是一款 Telegram 风格的高颜值私有即时通讯应用。支持局域网自动发现、内置调试服务端、多 Provider 弹性管理，让你的数据重回私有与安全。</p>
+    <p>unobox 是一款 Telegram 风格的高颜值私有即时通讯应用。集成 8 种 AI 模型、全格式文件预览、内置浏览器与智能视频嗅探，支持多协议 Provider 弹性接入，让你的数据重回私有与安全。</p>
 
     <!-- 下载卡片 -->
     <div class="glass-card download-hero-card">
@@ -104,33 +104,33 @@
   <section class="features-grid">
     <div class="glass-card feature-item">
       <div class="feature-icon">🛡️</div>
-      <h3>源码私有，绝对安全</h3>
-      <p>客户端源码安全可控，数据与通道支持完全自建。无任何第三方爬虫 and 数据监控，真正保障你的商业和社交机密安全。</p>
-    </div>
-    <div class="glass-card feature-item">
-      <div class="feature-icon">⚡</div>
-      <h3>局域网超音速通信</h3>
-      <p>搭载基于 better-sqlite3 本地数据库与 WebSocket 的高效架构，支持局域网内设备自动侦测与上线，实现高并发零延迟对等通信。</p>
+      <h3>数据主权，绝对掌控</h3>
+      <p>支持纯本地 SQLite 存储模式，数据完全离线可用。自建 WebSocket / Matrix 服务端，无第三方爬虫与数据监控。Channel 支持仅本地保存，真正保障你的商业与社交机密安全。</p>
     </div>
     <div class="glass-card feature-item">
       <div class="feature-icon">🎨</div>
-      <h3>Telegram 极致体验</h3>
-      <p>高保真复刻 Telegram 的三栏式优雅布局、会话列表、精美消息气泡和主题配色，配合丝滑无边框交互，操作流畅顺手。</p>
-    </div>
-    <div class="glass-card feature-item">
-      <div class="feature-icon">🌐</div>
-      <h3>多网络联邦接入 (Matrix)</h3>
-      <p>目前已完美完成 Matrix 去中心化联邦网络接入。无论是局域网私有节点，还是全球 Matrix 节点，都能在同一个优雅的客户端中统一收发。</p>
+      <h3>Telegram 风格，极致体验</h3>
+      <p>高保真复刻 Telegram 三栏式布局、精美消息气泡、深色/浅色主题配色。完整实现群组管理、Channel、Bot 框架、话题模式、群投票、发言冷却等 Telegram 核心功能。</p>
     </div>
     <div class="glass-card feature-item">
       <div class="feature-icon">🔌</div>
-      <h3>弹性适配器，极致扩展</h3>
-      <p>基于先进 of IServerProvider 接口设计，具备无限协议适配能力。后续将逐步接入本地局域网对等、RocketChat、Nextcloud 等协议，打破壁垒。</p>
+      <h3>多协议接入，弹性扩展</h3>
+      <p>基于 IServerProvider 统一接口设计，已完整实现本地存储、WebSocket 自建服务端、Matrix 联邦网络三种协议适配器。支持热插拔，无需重启即可增减服务器，打破协议壁垒。</p>
     </div>
     <div class="glass-card feature-item">
       <div class="feature-icon">🤖</div>
-      <h3>主流 AI 助手原生集成</h3>
-      <p>开发路线图中已规划主流 AI API (如 Gemini, OpenAI) 的原生接入。支持在客户端内直接与 AI 助手对话、润色消息、自动回复等常用功能。</p>
+      <h3>8 种 AI 模型，深度集成</h3>
+      <p>已完整接入 OpenAI、Claude、Gemini、DeepSeek、OpenRouter、Qwen、MiniMax 及自定义接口。支持流式逐字输出、思考过程可视化、多轮对话上下文、会话持久化存储，AI 能力触手可及。</p>
+    </div>
+    <div class="glass-card feature-item">
+      <div class="feature-icon">🧩</div>
+      <h3>全格式文件，一站预览</h3>
+      <p>Word / Excel / CSV 在线预览，EPUB 电子书阅读（字号/行距/主题/进度记忆），PDF 分页浏览，Markdown 渲染。FFmpeg 集成：视频自动转码、封面缩略图、字幕提取、视频笔记，开箱即用。</p>
+    </div>
+    <div class="glass-card feature-item">
+      <div class="feature-icon">🌐</div>
+      <h3>内置浏览器，智能嗅探</h3>
+      <p>聊天中发送的链接一键在独立窗口中打开，自动三层嗅探（URL 正则 + Content-Type + JS 注入）视频资源。支持 MP4 / M3U8 / HLS 在线播放，搭配请求头伪装与反检测，畅享无缝浏览体验。</p>
     </div>
   </section>
 

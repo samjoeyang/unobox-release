@@ -1,0 +1,7 @@
+# unobox 官网 — robots.txt
+# 允许所有爬虫，引导至 sitemap
+
+User-agent: *
+Allow: /
+
+Sitemap: https://unobox.zhenzhidaole.com/sitemap.xml

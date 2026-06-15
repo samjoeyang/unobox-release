@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,6 +14,7 @@
       margin-bottom: 20px;
       flex-wrap: wrap;
     }
+
     .mode-tab {
       display: inline-flex;
       align-items: center;
@@ -21,14 +23,30 @@
       border-radius: 20px;
       font-size: 13px;
       font-weight: 600;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       color: var(--text-secondary);
       cursor: default;
     }
-    .mode-tab.ws { border-color: #3390ec44; color: #3390ec; background: #3390ec11; }
-    .mode-tab.matrix { border-color: #aa55ff44; color: #bb77ff; background: #aa55ff11; }
-    .mode-tab.local { border-color: #00c85044; color: #00d060; background: #00c85011; }
+
+    .mode-tab.ws {
+      border-color: #3390ec44;
+      color: #3390ec;
+      background: #3390ec11;
+    }
+
+    .mode-tab.matrix {
+      border-color: #aa55ff44;
+      color: #bb77ff;
+      background: #aa55ff11;
+    }
+
+    .mode-tab.local {
+      border-color: #00c85044;
+      color: #00d060;
+      background: #00c85011;
+    }
+
     .tip-box {
       padding: 12px 16px;
       background: rgba(51, 144, 236, 0.08);
@@ -39,39 +57,56 @@
       line-height: 1.7;
       margin-top: 14px;
     }
-    .tip-box strong { color: var(--primary); }
+
+    .tip-box strong {
+      color: var(--primary);
+    }
+
     .terminal-box {
       margin-top: 10px;
       padding: 10px 14px;
-      background: rgba(0,0,0,0.3);
+      background: rgba(0, 0, 0, 0.3);
       border-radius: var(--radius-sm);
       font-family: 'Courier New', Courier, monospace;
       font-size: 12.5px;
       color: #a0e0a0;
       line-height: 1.8;
-      border: 1px solid rgba(255,255,255,0.07);
+      border: 1px solid rgba(255, 255, 255, 0.07);
       white-space: pre-wrap;
       word-break: break-all;
     }
+
     .step-sub {
       margin-top: 10px;
       font-size: 14px;
       color: var(--text-secondary);
       line-height: 1.8;
     }
-    .step-sub li { margin-bottom: 4px; }
+
+    .step-sub li {
+      margin-bottom: 4px;
+    }
+
     .section-divider {
       border: none;
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
       margin: 36px 0;
     }
+
     @media (max-width: 600px) {
-      .mode-tabs { gap: 6px; }
-      .mode-tab { padding: 5px 10px; font-size: 12px; }
+      .mode-tabs {
+        gap: 6px;
+      }
+
+      .mode-tab {
+        padding: 5px 10px;
+        font-size: 12px;
+      }
     }
   </style>
 </head>
+
 <body>
   <!-- 发光粒子装饰 -->
   <div class="bg-glow-1"></div>
@@ -86,6 +121,7 @@
       <a href="index.html" class="nav-link">首页</a>
       <a href="usage.html" class="nav-link active">教程</a>
       <a href="changelog.html" class="nav-link">版本日志</a>
+      <a href="donate.html" class="nav-link">赞赏</a>
       <a href="unobox-Setup-0.1.0.exe" class="btn-nav-download" id="nav-download-btn">下载</a>
     </div>
   </nav>
@@ -93,7 +129,8 @@
   <!-- 教程主内容区 -->
   <main class="container-narrow">
     <div style="text-align: center; margin-bottom: 60px;">
-      <h1 style="font-family: var(--font-display); font-size: 40px; font-weight: 800; margin: 0 0 10px 0;">快速开始与使用指南</h1>
+      <h1 style="font-family: var(--font-display); font-size: 40px; font-weight: 800; margin: 0 0 10px 0;">快速开始与使用指南
+      </h1>
       <p style="color: var(--text-secondary); font-size: 16px;">只需三步，在任何场景下搭建属于自己的安全私密通讯。</p>
     </div>
 
@@ -102,7 +139,8 @@
       <div class="step-num">1</div>
       <div class="step-content">
         <h3>下载并安装 unobox 桌面客户端</h3>
-        <p>从 <a href="index.html" style="color: var(--primary); text-decoration: none; font-weight: 600;">官网首页</a> 根据你的操作系统下载对应版本：</p>
+        <p>从 <a href="index.html" style="color: var(--primary); text-decoration: none; font-weight: 600;">官网首页</a>
+          根据你的操作系统下载对应版本：</p>
         <ul class="step-sub">
           <li>🪟 <strong>Windows</strong>：下载 <code>.exe</code> 安装包，双击运行，按向导一键完成安装。</li>
           <li>🍎 <strong>macOS</strong>：下载 <code>.dmg</code> 磁盘镜像，打开后将 unobox 拖入 Applications 文件夹。</li>
@@ -119,7 +157,7 @@
       <div class="step-content">
         <h3>首次启动：选择通信模式</h3>
         <p>首次打开 unobox 时，会显示欢迎引导界面。点击 <strong>"开始配置"</strong>，然后从三种通信模式中选择一种：</p>
-        
+
         <div class="mode-tabs" style="margin-top: 16px;">
           <span class="mode-tab ws">🔌 WebSocket 局域网</span>
           <span class="mode-tab matrix">🌐 Matrix 联邦网络</span>
@@ -128,15 +166,18 @@
 
         <!-- WebSocket 模式说明 -->
         <div style="margin-bottom: 20px;">
-          <div style="font-weight: 700; font-size: 15px; margin-bottom: 8px; color: #3390ec;">🔌 模式一：WebSocket 局域网（推荐）</div>
+          <div style="font-weight: 700; font-size: 15px; margin-bottom: 8px; color: #3390ec;">🔌 模式一：WebSocket 局域网（推荐）
+          </div>
           <p class="step-sub" style="margin-top: 0;">适合局域网（家庭/公司/内网）中多台设备互联通信。分为两个角色：</p>
           <ul class="step-sub">
-            <li><strong>服务端模式</strong>（主机）：选择"服务端模式（本地承载）"，填写端口（默认 8080）、访问密码（系统会自动随机生成）和本机用户名，点击"保存并连接"启动内置 WebSocket 服务器。</li>
-            <li><strong>客户端模式</strong>（其他设备）：选择"客户端模式（连接远端）"，填入主机的局域网 IP + 端口（如 <code>ws://192.168.1.100:8080</code>）和对应的访问密码，点击"保存并连接"即可加入。</li>
+            <li><strong>服务端模式</strong>（主机）：选择"服务端模式（本地承载）"，填写端口（默认 8080）、访问密码（系统会自动随机生成）和本机用户名，点击"保存并连接"启动内置 WebSocket
+              服务器。</li>
+            <li><strong>客户端模式</strong>（其他设备）：选择"客户端模式（连接远端）"，填入主机的局域网 IP + 端口（如
+              <code>ws://192.168.1.100:8080</code>）和对应的访问密码，点击"保存并连接"即可加入。</li>
           </ul>
           <div class="terminal-box">服务端信息（其他人连接时需要提供）：
-地址：ws://[主机局域网IP]:8080
-密码：（服务端页面中显示的随机 Token）</div>
+            地址：ws://[主机局域网IP]:8080
+            密码：（服务端页面中显示的随机 Token）</div>
           <div class="tip-box">
             📢 主机的局域网 IP 可以在"服务端模式"配置面板的 <strong>"局域网接入信息"</strong> 提示框中直接复制，无需自行查找。
           </div>
@@ -180,7 +221,8 @@
           <li>🔔 <strong>在线提示</strong>：局域网模式下，当其他设备连入服务器时，系统会自动弹出桌面通知提醒。</li>
         </ul>
         <div class="tip-box">
-          ⚙️ <strong>更换主题 / 调整字体大小</strong>：点击左上角的"设置"图标（⚙️）进入设置页，在 <strong>外观</strong> 选项中可切换日间/深色主题，以及拖动滑块调整消息字体大小（12–24px）。
+          ⚙️ <strong>更换主题 / 调整字体大小</strong>：点击左上角的"设置"图标（⚙️）进入设置页，在 <strong>外观</strong>
+          选项中可切换日间/深色主题，以及拖动滑块调整消息字体大小（12–24px）。
         </div>
       </div>
     </div>
@@ -214,7 +256,7 @@
   <script>
     // 自动根据平台与最新 latest.yml 动态替换导航栏下载链接
     let currentVersion = '0.1.0';
-    
+
     function getOS() {
       if (navigator.userAgentData && navigator.userAgentData.platform) {
         const platform = navigator.userAgentData.platform.toLowerCase();
@@ -222,15 +264,15 @@
         if (platform.includes('linux')) return 'linux';
         if (platform.includes('win')) return 'win';
       }
-      
+
       const ua = navigator.userAgent.toLowerCase();
       if (ua.indexOf('macintosh') >= 0 || ua.indexOf('mac os') >= 0) return 'mac';
       if (ua.indexOf('linux') >= 0 && ua.indexOf('android') === -1) return 'linux';
       return 'win'; // 默认 Windows
     }
-    
+
     const detectedOS = getOS();
-    
+
     function updateNavDownload(version) {
       let downloadUrl = `https://github.com/samjoeyang/unobox-release/releases/download/v${version}/unobox-Setup-${version}.exe`;
       if (detectedOS === 'mac') {
@@ -241,7 +283,7 @@
       const navBtn = document.getElementById('nav-download-btn');
       if (navBtn) navBtn.setAttribute('href', downloadUrl);
     }
-    
+
     fetch('latest.yml')
       .then(res => res.text())
       .then(yml => {
@@ -256,5 +298,15 @@
         updateNavDownload(currentVersion);
       });
   </script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DKH8M8LSNW"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-DKH8M8LSNW');
+  </script>
 </body>
+
 </html>

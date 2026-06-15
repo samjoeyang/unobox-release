@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- 首页 — 最高优先级 -->
+  <url>
+    <loc>https://unobox.zhenzhidaole.com/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- 使用指南 — 新用户必看 -->
+  <url>
+    <loc>https://unobox.zhenzhidaole.com/usage.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- 更新日志 — 每次发版更新 -->
+  <url>
+    <loc>https://unobox.zhenzhidaole.com/changelog.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- 赞赏支持 -->
+  <url>
+    <loc>https://unobox.zhenzhidaole.com/donate.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+</urlset>

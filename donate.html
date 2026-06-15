@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>赞赏支持 - unobox</title>
+  <meta name="description" content="支持 unobox 独立开发者持续维护与更新。您的每一份赞赏都是动力。">
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .donate-card {
+      background: var(--bg-surface);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 40px 32px;
+      text-align: center;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .donate-card h2 {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      margin: 0 0 8px 0;
+      color: var(--text-primary);
+    }
+
+    .donate-card .subtitle {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 28px;
+      line-height: 1.7;
+    }
+
+    .qrcode-section {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .qrcode-item {
+      flex: 1;
+      min-width: 160px;
+      max-width: 200px;
+    }
+
+    .qrcode-box {
+      width: 100%;
+      aspect-ratio: 1;
+      background: #fff;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+      color: #333;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .qrcode-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: var(--radius-sm);
+    }
+
+    .qrcode-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .qrcode-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .donate-notice {
+      margin-top: 28px;
+      padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.8;
+      text-align: left;
+    }
+
+    .donate-notice strong {
+      color: var(--text-secondary);
+    }
+
+    .sponsor-note {
+      margin-top: 32px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .sponsor-note a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .sponsor-note a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand"><span>💬 unobox</span></a>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">首页</a>
+      <a href="usage.html" class="nav-link">教程</a>
+      <a href="changelog.html" class="nav-link">版本日志</a>
+      <a href="donate.html" class="nav-link active">赞赏</a>
+      <a href="https://github.com/samjoeyang/unobox-release/releases/download/v0.1.0/unobox-Setup-0.1.0.exe"
+        class="btn-nav-download">下载</a>
+    </div>
+  </nav>
+
+  <main class="container-narrow">
+    <div style="text-align: center; margin-bottom: 48px;">
+      <h1 style="font-family: var(--font-display); font-size: 40px; font-weight: 800; margin: 0 0 10px 0;">☕ 赞赏支持</h1>
+      <p style="color: var(--text-secondary); font-size: 16px;">您的每一份认可，都是独立开发者持续前行的动力</p>
+    </div>
+
+    <div class="donate-card">
+      <h2>支持 unobox 持续开发</h2>
+      <p class="subtitle">
+        unobox 是一款完全免费、无广告的私有通讯工具。<br>
+        如果你觉得它对你有所帮助，欢迎请开发者喝杯咖啡 ☕<br>
+        <strong>所有赞赏均为自愿，不附带任何商业回报或承诺。</strong>
+      </p>
+
+      <div class="qrcode-section">
+        <div class="qrcode-item">
+          <div class="qrcode-box">
+            <img src="assets/wepay.JPG" alt="微信赞赏码">
+          </div>
+          <div class="qrcode-label">微信支付</div>
+          <div class="qrcode-hint">打开微信"扫一扫"</div>
+        </div>
+        <div class="qrcode-item">
+          <div class="qrcode-box">
+            <img src="assets/alipay.JPG" alt="支付宝收款码">
+          </div>
+          <div class="qrcode-label">支付宝</div>
+          <div class="qrcode-hint">打开支付宝"扫一扫"</div>
+        </div>
+      </div>
+
+      <div class="donate-notice">
+        <strong>📌 请注意：</strong><br>
+        1. 赞赏为自愿行为，不构成任何形式的购买、订阅或商业交易；<br>
+        2. 赞赏不代表可获得特殊权益、优先支持或功能定制承诺；<br>
+        3. 赞赏金额完全由您自主决定，开发者不设金额引导；<br>
+        4. unobox 的功能和使用不受赞赏与否的影响，所有用户享有同等权益；<br>
+        5. 本页面不涉及任何募捐、众筹或慈善活动，仅为个人开发者接受用户自愿支持。
+      </div>
+    </div>
+
+    <div class="sponsor-note" style="text-align: center;">
+      除直接赞赏外，也欢迎通过以下方式支持：<br>
+      ⭐ <a href="https://github.com/samjoeyang/unobox-release" target="_blank">GitHub Star</a> &nbsp;|&nbsp;
+      🐛 <a href="https://github.com/samjoeyang/unobox-release/issues" target="_blank">反馈 Bug</a> &nbsp;|&nbsp;
+      📣 <a href="https://github.com/samjoeyang/unobox-release" target="_blank">推荐给朋友</a>
+    </div>
+  </main>
+
+  <footer class="footer" style="margin-top: 80px;">
+    <p>© 2026 unobox Project. 版权所有。</p>
+  </footer>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DKH8M8LSNW"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-DKH8M8LSNW');
+  </script>
+</body>
+
+</html>

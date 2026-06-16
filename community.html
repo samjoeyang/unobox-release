@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>交流社区 - unobox</title>
+  <meta name="description" content="加入 unobox 官方群组和频道，获取最新动态、参与讨论。">
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .community-card {
+      background: var(--bg-surface);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 40px 32px;
+      text-align: center;
+      max-width: 520px;
+      margin: 0 auto 24px auto;
+    }
+
+    .community-card h2 {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      margin: 0 0 8px 0;
+      color: var(--text-primary);
+    }
+
+    .community-card .subtitle {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 28px;
+      line-height: 1.7;
+    }
+
+    .qrcode-box {
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 16px auto;
+      background: #fff;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      overflow: hidden;
+    }
+
+    .qrcode-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .community-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 24px;
+      border-radius: var(--radius-sm);
+      background: rgba(51, 144, 236, 0.1);
+      color: #3390ec;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      margin-bottom: 8px;
+    }
+
+    .community-link:hover {
+      background: rgba(51, 144, 236, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .community-link i {
+      font-size: 18px;
+    }
+
+    .community-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand"><span>💬 unobox</span></a>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">首页</a>
+      <a href="usage.html" class="nav-link">教程</a>
+      <a href="changelog.html" class="nav-link">版本日志</a>
+      <a href="community.html" class="nav-link active">交流</a>
+      <a href="donate.html" class="nav-link">赞赏</a>
+      <a href="https://github.com/samjoeyang/unobox-release/releases/download/v0.1.0/unobox-Setup-0.1.0.exe"
+        class="btn-nav-download">下载</a>
+    </div>
+  </nav>
+
+  <main class="container-narrow">
+    <div style="text-align: center; margin-bottom: 48px;">
+      <h1 style="font-family: var(--font-display); font-size: 40px; font-weight: 800; margin: 0 0 10px 0;">💬 交流社区</h1>
+      <p style="color: var(--text-secondary); font-size: 16px;">加入我们的 Telegram 群组和频道，参与讨论、获取最新动态</p>
+    </div>
+
+    <!-- 官方群组 -->
+    <div class="community-card">
+      <h2>💬 官方群组</h2>
+      <p class="subtitle">
+        加入 unobox 用户群，与开发者和用户一起交流<br>
+        使用心得、反馈问题、分享创意。
+      </p>
+      <div class="qrcode-box">
+        <img src="assets/telegram_group_unobox_qr.jpeg" alt="Telegram 官方群组二维码">
+      </div>
+      <a href="https://t.me/+3KH9Cn8-yIQ1ZDI1" target="_blank" class="community-link">
+        <i class="fa-brands fa-telegram"></i> 加入群组
+      </a>
+      <div class="community-hint">打开 Telegram 扫码或点击按钮加入</div>
+    </div>
+
+    <!-- 官方频道 -->
+    <div class="community-card">
+      <h2>📢 官方频道</h2>
+      <p class="subtitle">
+        关注 unobox 官方频道，第一时间获取<br>
+        版本更新、功能预告和开发动态。
+      </p>
+      <div class="qrcode-box">
+        <img src="assets/telegram_channel_unobox_qr.jpeg" alt="Telegram 官方频道二维码">
+      </div>
+      <a href="https://t.me/+KN45JemRvb5kMmNl" target="_blank" class="community-link">
+        <i class="fa-brands fa-telegram"></i> 关注频道
+      </a>
+      <div class="community-hint">打开 Telegram 扫码或点击按钮关注</div>
+    </div>
+  </main>
+
+  <footer class="footer" style="margin-top: 80px;">
+    <p>© 2026 unobox Project. 版权所有。</p>
+  </footer>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DKH8M8LSNW"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-DKH8M8LSNW');
+  </script>
+</body>
+
+</html>

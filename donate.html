@@ -82,6 +82,22 @@
       color: var(--text-muted);
     }
 
+    .amount-hint-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .amount-hint-item {
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
     .donate-notice {
       margin-top: 28px;
       padding: 16px 20px;
@@ -146,6 +162,15 @@
         <strong>所有赞赏均为自愿，不附带任何商业回报或承诺。</strong>
       </p>
 
+      <div class="amount-hint-row">
+        <span class="amount-hint-item">☕ 一杯咖啡 ¥6</span>
+        <span style="color: var(--text-muted); font-size: 11px;">·</span>
+        <span class="amount-hint-item">🍱 一顿快餐 ¥25</span>
+        <span style="color: var(--text-muted); font-size: 11px;">·</span>
+        <span class="amount-hint-item">🎁 给个大的 ¥88</span>
+      </div>
+      <p style="font-size: 12px; color: var(--text-muted); margin: -12px 0 20px 0;">扫码后按心意输入任意金额即可 ❤️</p>
+
       <div class="qrcode-section">
         <div class="qrcode-item">
           <div class="qrcode-box">
@@ -167,7 +192,7 @@
         <strong>📌 请注意：</strong><br>
         1. 赞赏为自愿行为，不构成任何形式的购买、订阅或商业交易；<br>
         2. 赞赏不代表可获得特殊权益、优先支持或功能定制承诺；<br>
-        3. 赞赏金额完全由您自主决定，开发者不设金额引导；<br>
+        3. 上方金额仅为温馨参考，您可按任意金额赞赏，完全自主决定；<br>
         4. unobox 的功能和使用不受赞赏与否的影响，所有用户享有同等权益；<br>
         5. 本页面不涉及任何募捐、众筹或慈善活动，仅为个人开发者接受用户自愿支持。
       </div>

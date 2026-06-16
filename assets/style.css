@@ -109,6 +109,14 @@ body {
   text-decoration: none;
 }
 
+.navbar-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  -webkit-text-fill-color: initial;
+}
+
 .nav-links {
   display: flex;
   gap: 28px;

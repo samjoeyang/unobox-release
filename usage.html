@@ -123,7 +123,7 @@
       <a href="changelog.html" class="nav-link">版本日志</a>
       <a href="community.html" class="nav-link">交流</a>
       <a href="donate.html" class="nav-link">赞赏</a>
-      <a href="unobox-Setup-0.1.0.exe" class="btn-nav-download" id="nav-download-btn">下载</a>
+      <a href="#" class="btn-nav-download" id="nav-download-btn">下载</a>
     </div>
   </nav>
 
@@ -247,6 +247,31 @@
       </div>
     </div>
 
+    <hr class="section-divider">
+
+    <!-- 端到端加密 -->
+    <div class="glass-card step-card">
+      <div class="step-num" style="font-size: 18px;">🔒</div>
+      <div class="step-content">
+        <h3>端到端加密（E2EE）— 隐私与安全</h3>
+        <p>unobox v0.2.4 起全面支持端到端加密，三种协议模式均已实现：</p>
+        <ul class="step-sub">
+          <li><strong>本地模式</strong>：设置口令后，所有消息和附件自动使用 XSalsa20-Poly1305 加密存储，密钥通过 BLAKE2b KDF 从口令派生。</li>
+          <li><strong>WebSocket 模式</strong>：X3DH 密钥协商 + Double Ratchet 会话加密，每次消息自动更新密钥（前向安全）。</li>
+          <li><strong>Matrix 模式</strong>：Olm + Megolm 端到端加密，兼容 Element 等 Matrix 客户端。</li>
+        </ul>
+        <p style="margin-top: 12px;">📋 <strong>如何启用：</strong></p>
+        <ul class="step-sub">
+          <li>进入 <strong>设置 → 隐私与安全</strong>，设置加密口令即可启用。</li>
+          <li>口令强度指示器会实时反馈安全等级，建议使用 8 位以上混合字符。</li>
+          <li>启用后，消息气泡右侧会显示 🔒 加密图标；Bot/AI 房间自动豁免加密。</li>
+        </ul>
+        <div class="tip-box">
+          🔑 <strong>密钥备份</strong>：在隐私与安全页面可导出加密密钥备份（JSON 文件）。重装系统或更换设备后，通过"恢复密钥备份"导入即可解密历史消息。关闭 E2EE 不会自动解密已加密的历史消息，需输入口令后手动导出。
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- 底部 -->
@@ -256,7 +281,7 @@
 
   <script>
     // 自动根据平台与最新 latest.yml 动态替换导航栏下载链接
-    let currentVersion = '0.1.0';
+    let currentVersion = '0.2.6';
 
     function getOS() {
       if (navigator.userAgentData && navigator.userAgentData.platform) {

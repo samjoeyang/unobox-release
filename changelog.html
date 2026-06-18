@@ -43,6 +43,83 @@
 
       <div class="glass-card changelog-card">
         <div class="changelog-header">
+          <h2 class="changelog-version">v0.2.6 · 🔒 E2EE 全协议 + 密钥管理</h2>
+          <span class="changelog-date">2026年6月18日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>三种 Provider 模式 E2EE 全部实现</h3>
+          <ul>
+            <li>WebSocket 模式：X3DH + Double Ratchet 端到端加密，支持带内协商(PASSIVE)和服务端辅助(ASSISTED)</li>
+            <li>Matrix 模式：initRustCrypto(matrix-sdk-crypto-wasm) + Olm/Megolm，兼容 Element 等客户端</li>
+            <li>WS 服务端新增 Pre-Key 存储端点 + 6 种 e2ee.* 消息透传</li>
+            <li>群聊 Sender Keys 加密 + 成员变更自动密钥轮换</li>
+          </ul>
+          <h3>E2EE 设置页重构</h3>
+          <ul>
+            <li>按服务器独立隔离：不同协议 E2EE 配置互不干扰 + Toggle 开关 + Modal 弹窗</li>
+            <li>密钥备份恢复：加密导出/导入密钥 JSON 文件</li>
+            <li>聊天记录导出：口令解密后导出明文 JSON</li>
+            <li>通知隐私开关：隐藏加密消息的通知内容</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.2.5 · 🔒 E2EE UI 层 + 附件加密 + Bot 豁免</h2>
+          <span class="changelog-date">2026年6月17日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>UI 层 E2EE 状态管理</h3>
+          <ul>
+            <li><code>useE2EEStore</code>：Zustand store 桥接 LocalProvider → 渲染层，支持启用/关闭/更改口令/验证口令</li>
+            <li><code>E2eeSettingsView</code>：设置 → 隐私与安全独立页面，三态表单（启用/关闭/改密）+ 6 项口令强度检测 + 4 级颜色指示条</li>
+            <li>消息气泡 E2EE 加密图标：🔒 已加密 / ❌ 解密失败 / 🔒 锁定，集成在时间戳区域</li>
+          </ul>
+          <h3>附件文件级加密</h3>
+          <ul>
+            <li>E2EE 启用时自动加密上传：文件名 UUID.enc + MIME 隐藏为 octet-stream</li>
+            <li>真实文件名/MIME/nonce 通过 UploadResult 扩展字段保存到加密消息体</li>
+          </ul>
+          <h3>Bot/AI 房间 E2EE 豁免</h3>
+          <ul>
+            <li>创建 Bot 房间或 type='bot' 时自动排除 E2EE 加密，保障 Bot/AI 功能正常</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.2.4 · 🔒 端到端加密 Phase 1-2</h2>
+          <span class="changelog-date">2026年6月16日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>加密基础库（packages/core/src/crypto/，~3,200 行）</h3>
+          <ul>
+            <li>完整实现 Signal Protocol 核心：Ed25519 身份密钥、X25519 预密钥、X3DH 密钥协商（4-DH）、Double Ratchet 会话加密（前向安全）、Sender Keys 群组加密</li>
+            <li>加密原语基于 libsodium-wrappers：XSalsa20-Poly1305 / Ed25519 / X25519 / BLAKE2b</li>
+            <li>Ed25519↔X25519 密钥转换修正，4 组 DH 值全部匹配验证通过</li>
+            <li>4 个单元测试文件（identity / x3dh / doubleRatchet / messageEncrypt）</li>
+          </ul>
+          <h3>本地模式加密存储（P0）</h3>
+          <ul>
+            <li>口令→主密钥→消息密钥三层派生（BLAKE2b KDF），口令变更不触发消息重加密</li>
+            <li>附件加密：每个附件独立密钥（由消息密钥派生），文件名/路径脱敏</li>
+            <li>数据库 migration：<code>messages</code> 表新增 <code>encrypted</code> / <code>e2ee_version</code> 列</li>
+            <li>明文历史消息兼容：逐条标记，不批量回加密，解密失败自动降级占位</li>
+            <li>Bot/AI 房间自动排除加密（<code>e2eeExemptRoomIds</code>）</li>
+            <li>IServerProvider 扩展：新增 <code>supportsE2EE</code> / <code>e2eeEnabled</code> 等 12 项 E2EE 属性</li>
+          </ul>
+          <h3>设计文档</h3>
+          <ul>
+            <li>端到端加密方案文档更新至 v1.1：新增附录 C 实施记录（Schema、技术差异、验证状态）</li>
+            <li>PRD.md / README.md / 官网同步更新竞品对标和功能状态</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
           <h2 class="changelog-version">v0.2.2 · 贴纸系统 + 定时消息调度器</h2>
           <span class="changelog-date">2026年6月14日</span>
         </div>
@@ -250,7 +327,7 @@
 
   <script>
     // 自动根据平台与最新 latest.yml 动态替换导航栏下载链接
-    let currentVersion = '0.2.2';
+    let currentVersion = '0.2.6';
 
     function getOS() {
       if (navigator.userAgentData && navigator.userAgentData.platform) {

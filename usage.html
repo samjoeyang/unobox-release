@@ -189,12 +189,13 @@
           <div style="font-weight: 700; font-size: 15px; margin-bottom: 8px; color: #bb77ff;">🌐 模式二：Matrix 联邦网络</div>
           <p class="step-sub" style="margin-top: 0;">适合连接全球公开的 Matrix/Synapse 服务器或自建 Synapse 私有节点，打破地理隔阂实现跨网络私密通信。</p>
           <ul class="step-sub">
-            <li>在 <strong>Homeserver URL</strong> 中填入 Matrix 服务器地址（如 <code>https://matrix.org</code> 或你的私有节点）。</li>
-            <li>填写用户名（如 <code>samjoeyang</code>，系统会自动组成 <code>@samjoeyang:matrix.org</code> 格式）。</li>
+            <li>在 <strong>Homeserver URL</strong> 中填入 Matrix 服务器地址（如 <code>https://matrix.example.com</code>、自建 Synapse 地址，或确认本机网络可解析的公共 Matrix 地址）。</li>
+            <li>填写用户名（如 <code>samjoeyang</code>，系统会根据 Homeserver 自动组成完整 Matrix ID）。</li>
             <li>使用账号密码或 Access Token（<code>syt_...</code>）登录，点击"保存并连接"。</li>
+            <li>新建会话时选择普通对话、普通房间、加密对话或加密房间；加密会话创建时启用 Matrix 房间级 <code>m.room.encryption</code>。</li>
           </ul>
           <div class="tip-box">
-            🌍 Matrix 模式支持与全球任何 Matrix 服务器的用户聊天，实现真正的去中心化私有通信。你可以在 <strong>matrix.org</strong> 注册免费账号进行体验。
+            🌍 Matrix 模式支持与全球任何 Matrix 服务器的用户聊天。添加服务器时默认填入 <strong>matrix.org</strong> 便于快速体验；如果 DNS/网络不可达，请改用可访问的 Homeserver 或自建 Synapse 节点。加密房间创建后不可降级为普通房间。
           </div>
         </div>
 

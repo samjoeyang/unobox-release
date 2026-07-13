@@ -1,15 +1,15 @@
-version: 0.1.0
+version: 0.3.5
 files:
-  - url: unobox_0.1.0.AppImage
-    sha512: WxwhhVM7sEsSNWkpNag73msVBMZnMaBA6X8V1xsjlY3neHM0AdUBsYeV88w/NYiiC9IGa/vQQDuRmWa1ohis2g==
-    size: 236737133
-    blockMapSize: 246401
-  - url: unobox_0.1.0.deb
-    sha512: Vm0DkiR2zLB09R/4jMh9IBmPHfciEBSTPzrqX3ZGg6qr9groCW/99snJhHKuBMe3LqRQ90LIUd+a+oqzS6QKsw==
-    size: 150612940
-  - url: unobox_0.1.0.rpm
-    sha512: nXcvoMBo5WDPANrIMWsRbEvzFlrTa9Eaa4sJQTvrD5UXzB5D2my0LJKLXlLhIAcjEAOHulw0s+HLSvnjsU+GEA==
-    size: 152947965
-path: unobox_0.1.0.AppImage
-sha512: WxwhhVM7sEsSNWkpNag73msVBMZnMaBA6X8V1xsjlY3neHM0AdUBsYeV88w/NYiiC9IGa/vQQDuRmWa1ohis2g==
-releaseDate: '2026-06-04T14:33:10.520Z'
+  - url: unobox_0.3.5.AppImage
+    sha512: VZBQ0x4E7YHNsJlVsrGCwjR5iRr8gJHyLi8Dy2a8Ce6EmVvL2XPb+aSImfQXX5iKJz6EX8lXpiOjJ00qRuCTSg==
+    size: 457217454
+    blockMapSize: 476610
+  - url: unobox_0.3.5.deb
+    sha512: xSrnHecREBhwv2gWJx95g/NWctUhDiQU2oPVtiq+oWiHIsAlHhlZYy1nCQcbVFrBaztHEwV9RcOXMVJZMjxUEQ==
+    size: 255056924
+  - url: unobox_0.3.5.rpm
+    sha512: ZCFjlqs0SNxnoW9W7ZaY/m/B+dlVdCgjLwi/dPanrv/gnbXRHl5lsxGoEE9ESVRWfdG6cp+/vZ6o4NtPmayjYQ==
+    size: 255755981
+path: unobox_0.3.5.AppImage
+sha512: VZBQ0x4E7YHNsJlVsrGCwjR5iRr8gJHyLi8Dy2a8Ce6EmVvL2XPb+aSImfQXX5iKJz6EX8lXpiOjJ00qRuCTSg==
+releaseDate: '2026-07-13T05:45:28.310Z'

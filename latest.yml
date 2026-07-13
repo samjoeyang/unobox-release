@@ -1,1 +1,8 @@
-version: 0.2.6
+version: 0.3.5
+files:
+  - url: https://github.com/samjoeyang/unobox-release/releases/download/v0.3.5/unobox-Setup-0.3.5.exe
+    sha512: G19SCLv5zj5Bu1SqjCYnANna2KfiffwHKAzeuaxvOQpZctXEflabr35FhogZl2Yy2p4QsH6IWGSXpvm4NqXUWQ==
+    size: 204670235
+path: https://github.com/samjoeyang/unobox-release/releases/download/v0.3.5/unobox-Setup-0.3.5.exe
+sha512: G19SCLv5zj5Bu1SqjCYnANna2KfiffwHKAzeuaxvOQpZctXEflabr35FhogZl2Yy2p4QsH6IWGSXpvm4NqXUWQ==
+releaseDate: '2026-07-13T05:38:03.445Z'

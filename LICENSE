@@ -1,0 +1,127 @@
+# unobox 最终用户许可协议
+
+**版本：1.0 | 生效日期：2026-06-12 | 适用产品：unobox v0.1.x 及后续版本**
+
+---
+
+## 中文版本（以本版本为准）
+
+### 1. 许可授予
+
+unobox（以下简称"本软件"）的著作权人 **SamjoeYang**（以下简称"许可人"）授予您（以下简称"用户"）一项全球范围内、非排他性、不可转让、可撤销的免费许可，允许您：
+
+1. 在本协议条款下下载、安装和使用本软件
+2. 分发本软件未经修改的原始安装包，前提是：
+   - 分发行为不收取费用，经许可人书面同意的除外
+   - 安装包保持完整，不含任何修改、捆绑或附加内容
+   - 随附本协议的完整副本
+
+### 2. 限制条款
+
+除本协议明确授予的权利外，所有权利均由许可人保留。**未经许可人事先书面同意，用户不得：**
+
+1. 对本软件进行逆向工程、反编译、反汇编，或试图以任何方式提取源代码
+2. 修改、改编、翻译本软件，或基于本软件创作衍生作品
+3. 出租、租赁、出借、分许可或以其他方式转让本协议项下权利
+4. 移除、修改或遮盖本软件中的任何版权、商标或所有权声明
+5. 将本软件用于任何非法目的
+6. 以任何形式公开或私下再发布本软件的修改版本
+
+**本软件源代码为私有财产，不随本许可协议公开。**
+
+### 3. 开源组件声明
+
+本软件包含以下第三方开源组件的二进制分发：
+
+| 组件 | 许可证 | 备注 |
+|------|--------|------|
+| Lightning CSS | MPL-2.0 | 仅文件级 copyleft，不影响其他代码 |
+
+上述组件受各自许可证条款约束。
+
+本软件使用 FFmpeg/FFprobe 处理视频音频，但不捆绑其二进制文件。本软件会自动检测系统中已安装的 FFmpeg/FFprobe，若未检测到将提示用户自行安装。
+
+本软件其他依赖项的完整列表及许可证信息，请参见 `THIRD_PARTY_NOTICES` 文件。
+
+### 4. 知识产权
+
+本软件及其所有副本的全部所有权、所有权权益和知识产权（包括但不限于源代码、目标代码、用户界面设计、名称、标志和品牌）均为许可人独占财产。本协议不向用户转让任何所有权。
+
+### 5. 免责声明
+
+本软件按"现状"提供，不附带任何形式的明示或默示保证，包括但不限于适销性、特定用途适用性及非侵权性保证。在任何情况下，许可人均不对因使用或无法使用本软件而产生的任何直接、间接、附带、特殊、惩戒性或后果性损害赔偿承担责任，即使已被告知此类损害的可能性。
+
+### 6. 隐私与数据
+
+本软件支持纯本地离线存储模式。当用户选择此模式运行时，所有数据仅存储在用户本地设备，不会传输至任何远程服务器。许可人不对用户自行选择连接第三方服务端时的数据安全承担责任。
+
+### 7. 终止
+
+本协议在终止前持续有效。如果用户违反本协议任何条款，本许可自动终止。终止后，用户必须销毁本软件的所有副本。
+
+### 8. 管辖法律
+
+本协议适用中华人民共和国法律。因本协议产生的争议，双方应友好协商解决；协商不成的，任何一方均可向许可人所在地有管辖权的人民法院提起诉讼。
+
+### 9. 更新
+
+许可人保留随时修改本协议条款的权利。重大变更将通过软件内置通知或官网公告告知用户。继续使用本软件即表示接受修改后的条款。
+
+---
+
+## English Version (for reference; the Chinese version shall prevail)
+
+### 1. License Grant
+
+The copyright holder of unobox, **SamjoeYang** ("Licensor"), grants you ("User") a worldwide, non-exclusive, non-transferable, revocable, royalty-free license to:
+
+1. Download, install, and use the Software under the terms of this Agreement
+2. Distribute unmodified original installation packages of the Software, provided that:
+   - No fee is charged unless expressly authorized by Licensor in writing
+   - The package remains intact without any modifications, bundling, or additions
+   - A complete copy of this Agreement accompanies the distribution
+
+### 2. Restrictions
+
+All rights not expressly granted herein are reserved by Licensor. **Without prior written consent, you may NOT:**
+
+1. Reverse engineer, decompile, disassemble, or attempt to extract source code
+2. Modify, adapt, translate, or create derivative works
+3. Rent, lease, lend, sublicense, or otherwise transfer rights under this Agreement
+4. Remove, modify, or obscure any copyright, trademark, or proprietary notices
+5. Use the Software for any unlawful purpose
+6. Publicly or privately redistribute modified versions of the Software
+
+**The source code of this Software is proprietary and is NOT released under this license.**
+
+### 3. Open Source Components
+
+This Software includes binary distributions of third-party open source components listed in §3 of the Chinese version above. These components are governed by their respective license terms. Users may request corresponding source code from Licensor in writing (subject to each project's open source license requirements). See `THIRD_PARTY_NOTICES` for a complete dependency list.
+
+### 4. Intellectual Property
+
+All title, ownership rights, and intellectual property rights in and to the Software (including source code, object code, UI design, names, logos, and branding) are the exclusive property of Licensor. No ownership is transferred under this Agreement.
+
+### 5. Disclaimer of Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE USE OF OR INABILITY TO USE THE SOFTWARE.
+
+### 6. Privacy & Data
+
+When operating in local offline mode, all data is stored solely on your local device. Licensor shall not be liable for data security when you choose to connect to third-party servers.
+
+### 7. Termination
+
+This Agreement is effective until terminated. Your rights under this Agreement will terminate automatically without notice if you fail to comply with any term. Upon termination, you must destroy all copies of the Software.
+
+### 8. Governing Law
+
+This Agreement shall be governed by the laws of the People's Republic of China. Any dispute arising from this Agreement shall first be resolved through friendly negotiation; failing that, either party may bring suit in the competent court at Licensor's domicile.
+
+### 9. Updates
+
+Licensor reserves the right to modify these terms at any time. Material changes will be communicated via in-app notification or the official website. Continued use of the Software constitutes acceptance of modified terms.
+
+---
+
+**© 2026 SamjoeYang. All rights reserved.**

@@ -43,6 +43,110 @@
 
       <div class="glass-card changelog-card">
         <div class="changelog-header">
+          <h2 class="changelog-version">v0.3.5 · 🌐 国际化 i18n + 移动端完整 + @提及/搜索/多选</h2>
+          <span class="changelog-date">2026年7月13日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>国际化全面支持</h3>
+          <ul>
+            <li>基于 i18next + react-i18next，Telegram 风格扁平键，57/57 组件全部国际化</li>
+            <li>语言设置「系统跟随」选项，自动检测系统语言切换；1669 条翻译键</li>
+            <li>语言包远程下载 + 聊天文件安装 (.json/.i18n)</li>
+            <li>批量修复 536 条劣质自动翻译，补充 688 条缺失翻译键</li>
+          </ul>
+          <h3>移动端功能完整闭环</h3>
+          <ul>
+            <li>全面增强聊天功能 Phase 1-7：消息收发、群组/频道管理、成员管理完整实现</li>
+            <li>频道统计 / 文件管理 / 全局搜索 / Bot 管理</li>
+            <li>投票 / 评论区 / 定时消息列表 / 慢速模式 / 已读状态</li>
+            <li>UI redesign + Paper 主题迁移 + 文件夹管理 + 新建功能</li>
+          </ul>
+          <h3>消息操作增强</h3>
+          <ul>
+            <li>@成员提及：群聊输入 @ 触发成员列表自动补全，消息 @username 蓝色高亮</li>
+            <li>消息多选 / 批量操作：右键菜单「选择」→ 批量转发/删除</li>
+            <li>会话内搜索 + 全局消息搜索（FTS5 全文索引）</li>
+            <li>跨房间消息跳转定位 + 搜索越界提示</li>
+          </ul>
+          <h3>重构</h3>
+          <ul>
+            <li>统一 Modal 组件基座：17 个弹窗全部迁移，净减约 440 行样板代码</li>
+            <li>拆分主进程：按域拆出 8 个 handler 文件，精简至 333 行</li>
+            <li>清理约 1957 行死代码（废弃 TTS Provider、旧播放器等）</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.3.3 · 🤖 AI 功能增强：火山引擎接入 + 多媒体显示</h2>
+          <span class="changelog-date">2026年6月28日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>新增功能</h3>
+          <ul>
+            <li>火山引擎（Coding Plan）接入：支持 <code>ark-code-latest</code> 接入点，OpenAI 兼容协议</li>
+            <li>AI 回复图片显示：Markdown 图片渲染 + 全屏预览（ImageViewer），消息结构新增 <code>imageUrls</code></li>
+            <li>AI 会话右键菜单：重命名 + 删除会话，确认对话框保护</li>
+          </ul>
+          <h3>修复</h3>
+          <ul>
+            <li>AI 会话切换消息串扰：切换时组件重建自动重置状态</li>
+            <li>Google Fonts 连接失败：移除外部引用，降级系统字体，更新 CSP</li>
+            <li>AI 流式结束后内容消失：函数式更新修复闭包陷阱</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">EPUB 引擎统一 + 有声书增强</h2>
+          <span class="changelog-date">2026年6月28日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>EPUB 统一渲染引擎</h3>
+          <ul>
+            <li>彻底移除 epubjs（-1598 行），所有电子书格式统一使用 <code>@xincmm/foliate-js</code></li>
+            <li>EPUB 全文搜索 (FTS5) 迁移到通用 <code>file_sections</code> 表，复用统一 IPC 通道</li>
+            <li>删除全部 11 个 epub:* IPC 处理器及 preload 声明，代码净减 466 行</li>
+          </ul>
+          <h3>有声书增强</h3>
+          <ul>
+            <li>foliate-js TTS 适配器：Intl.Segmenter 分句 + Range 高亮，替代正则 + span 方案</li>
+            <li>修复自动翻章失效、高亮残留 DOM 损坏、prebuffer 超时、书签导出拼接等问题</li>
+            <li>readbackRate 独立调速、字幕横滚动画、ESC 关闭保护</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.3.1 · 🔒 E2EE 二次方案：补齐 + 安全增强 + 部署策略</h2>
+          <span class="changelog-date">2026年6月27日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>部署级加密策略</h3>
+          <ul>
+            <li>支持 <code>none</code>（明文版）/ <code>optional</code>（自由选择）/ <code>mandatory</code>（强制加密）三种分发模式，构建时环境变量注入</li>
+            <li>群聊 E2EE 全员检查接口 + 第三方加密依赖合规声明</li>
+          </ul>
+          <h3>安全增强</h3>
+          <ul>
+            <li>sodium_memzero 密钥销毁：主密钥/身份私钥/Ratchet 会话密钥安全清零</li>
+            <li>30 分钟会话超时自动过期销毁 + WebSocket 重连自动清理临时缓存</li>
+          </ul>
+          <h3>修复</h3>
+          <ul>
+            <li>InBandKeyExchange G1/G2：真实密钥对修复随机私钥导致解密失败，nonce 从 payload 恢复</li>
+            <li>LocalCryptoProvider G3-G6：实现 Sender Key 群加密 + Double Ratchet 会话加密</li>
+            <li>解密失败 UI 五态显示：encrypted / decrypt-failed / encrypted-locked / session-expired / plaintext</li>
+            <li>Bot 管理改为独立设置子页面 + TypeScript 严格模式零错误</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
           <h2 class="changelog-version">v0.3.0 · 📱 移动端 SDK 54 + 本地聊天闭环</h2>
           <span class="changelog-date">2026年6月20日</span>
         </div>
@@ -373,7 +477,7 @@
 
   <script>
     // 自动根据平台与最新 latest.yml 动态替换导航栏下载链接
-    let currentVersion = '0.3.0';
+    let currentVersion = '0.3.5';
 
     function getOS() {
       if (navigator.userAgentData && navigator.userAgentData.platform) {

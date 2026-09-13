@@ -43,29 +43,1055 @@
 
       <div class="glass-card changelog-card">
         <div class="changelog-header">
-          <h2 class="changelog-version">v内置浏览器</h2>
+          <h2 class="changelog-version">未发布 · 🎙️ 新增 Microsoft Edge 朗读引擎</h2>
+          <span class="changelog-date">2026年9月13日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>新增</h3>
+          <ul>
+            <li><strong>Microsoft Edge 朗读引擎（<code>edge-tts</code>）</strong> — 复用 Edge 浏览器「大声朗读」所用的微软在线语音服务，<strong>无需 API Key、无需安装 Edge、免费无配额</strong>，中文音质接近 Azure Neural TTS。定位为<strong>可选引擎</strong>，不改动默认引擎（仍为本地 <code>sherpa-onnx</code>）</li>
+            <li><strong>自研 WebSocket 客户端，零新增依赖</strong> —— 复用项目已有的 <code>ws</code>。未采用 <code>msedge-tts</code> 等现成包，因其会引入 39 个传递依赖（含 <code>axios</code> / <code>buffer</code> / <code>stream-browserify</code> 等浏览器 shim，在 Electron 主进程中是纯冗余），且与 <code>RemoteProviderBase</code> 的「无需额外 npm 依赖」约定冲突</li>
+            <li><strong>未继承 <code>RemoteProviderBase</code></strong> —— 该基类面向 HTTPS REST（子类只实现 <code>buildRequest()</code>），而本引擎走 WebSocket；且它在无凭据时 <code>synthesize()</code> 会直接抛错，而本引擎免鉴权（<code>requiresAuth: false</code>），继承反而要覆盖掉基类逻辑</li>
+            <li>内置 21 个精选音色：普通话 6 + 方言 2 + 粤语 3 + 台湾国语 3 + 英文 5 + 日韩 2</li>
+            <li>协议要点：<code>Sec-MS-GEC</code> 反滥用令牌（Windows 纪元秒 → 5 分钟取整 → 100ns ticks → SHA-256 大写十六进制）+ Edge UA / <code>Origin</code> 握手头</li>
+            <li><strong>边界时间戳（逐字/逐句）能力</strong> —— <code>ITTSProvider</code> 新增 <code>TTSBoundary</code> 类型与 <code>TTSSynthesizeResult.boundaries</code> 字段，为朗读时的逐字高亮提供对齐数据</li>
+            <li>Edge 朗读返回 <code>WordBoundary</code> / <code>SentenceBoundary</code>，偏移单位为 100ns，中文分词正确（实测 1640 字长文本得到 865 个边界，词级覆盖 93.3%）</li>
+            <li><strong><code>TTSCache</code> 一并缓存边界</strong> —— 边界是 <code>(文本, 音色, 语速)</code> 的纯函数，与音频同缓存；否则命中缓存时 <code>boundaries</code> 会静默丢失，重播即失去高亮数据</li>
+            <li>其余引擎不支持该能力，不返回该字段，上层需按可选处理</li>
+          </ul>
+          <h3>修复</h3>
+          <ul>
+            <li><strong>长文本单次请求会被服务端断连</strong> — 实测单次请求约 <strong>2000 字可用、4000 字失败</strong>（服务端不发 <code>turn.end</code> 直接断连），且 2000 字单次要 26 秒。改为按 1200 字分段、<strong>复用同一条 WebSocket 连接</strong>顺序合成（一次只有一个未完成请求，消息归属无歧义），最后拼接音频并换算跨段偏移</li>
+            <li><strong>边界数组并非按时间有序</strong> — 服务端先发完一句内各词级边界、再补发指向<strong>句首</strong>的句级边界，故原始顺序不是时间序。初期实现仅在注释中声称「按时间升序」而实际不成立。现统一按偏移排序，且同偏移时<strong>显式</strong>让词级排在句级之前——若依赖 <code>Array#sort</code> 的稳定性，结果会取决于服务端下发顺序，而句级边界若在词级之后处理，会用粗粒度高亮覆盖掉更细的词级高亮</li>
+            <li><strong>主进程崩溃风险：<code>ws</code> 无 <code>error</code> 监听器时抛未捕获异常</strong> — 分段完成后 <code>cleanup()</code> 会摘掉错误监听器，此后 <code>close()</code> / <code>terminate()</code> 期间若触发 <code>error</code>，<code>ws</code> 会将其抛成未捕获异常直接终止主进程。改为在连接建立后始终保留一个兜底错误监听器</li>
+            <li><strong>TTS 设置页看不到免鉴权的远程引擎</strong> — <code>TTSSettings.tsx</code> 的可见性过滤为「本地全部 + <strong>已配置凭据的</strong>远程」，而 Edge 朗读 <code>requiresAuth: false</code>、永远进不了 <code>configuredRemoteIds</code>，于是两个列表都进不去、被静默过滤。改为免鉴权的远程引擎直接可见</li>
+            <li><strong>听书抽屉的引擎选择弹窗列表为空</strong> — 两个成因叠加：<br>① <code>AudiobookVoiceSelector</code> 的引擎列表取自 <code>useTTSStore.engines</code>，而该数组<strong>只在打开 TTS 设置面板时</strong>才会被 <code>fetchEngines()</code> 填充，直接进入听书抽屉时它仍是 <code>[]</code>；现改为挂载时若为空则按需补拉一次。<br>② 原有 <code>if (engine.type !== "local") continue</code> 的「有声书默认仅本地引擎」限制，叠加本地模型未安装时 <code>if (!voice.downloaded) continue</code> 会把本地音色全部滤掉，两者一起导致<strong>列表全空</strong>。现按需求取消该限制，本地与远程引擎均可选</li>
+            <li><strong>缓存命中时 <code>format</code> 被硬编码为 <code>"wav"</code></strong> — <code>handlers/tts.ts</code> 的缓存分支无视缓存文件的实际扩展名，返回固定 <code>wav</code>。改为按缓存文件后缀推断（远端引擎缓存的是 mp3）</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.4.0 · 📖 阅读器排版设置 + 有声书高亮重构 + 电子书标注 + 查词/翻译 + 朗读支持扩展到 TXT/MD/PDF</h2>
+          <span class="changelog-date">2026年9月13日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>新增</h3>
+          <ul>
+            <li><strong>有声书起始位置弹窗</strong> — <code>AudiobookPositionDialog</code> 组件，点击朗读按钮且存在播放记录时，三选一：继续上次进度 / 从当前阅读位置开始 / 从头开始。替代此前的原生 <code>confirm()</code>（其风格与整体 UI 不一致）。不弹窗仅在无历史记录时出现，此时直接从当前阅读位置开播</li>
+            <li><strong>阅读器排版设置（Aa 弹层）</strong> — 新增 <code>ReaderSettingsPanel</code> 组件与 <code>readerTypography.ts</code> 模块，8 项设置：</li>
+            <li>主题（跟随应用 / 明亮 / <strong>羊皮纸</strong> / 夜间）—— 阅读器配色与应用主题解耦</li>
+            <li>字体族（默认 / 无衬线 / 衬线 / 等宽）、字重（300–700）</li>
+            <li>字间距（0–0.2em）、左右边距（0–40px）、对齐（默认 / 左对齐 / 两端对齐）</li>
+            <li>亮度（30%–100%，遮罩层 <code>z-index: 4</code>，不拦截点击）</li>
+            <li>原独立的「行距」下拉并入 Aa 面板，避免同一设置两个入口</li>
+            <li><strong>收听历史面板入口</strong> — <code>AudiobookHistoryPanel</code> 此前数据层（表 / IPC / preload / Store）已就绪但<strong>无任何挂载点</strong>，现通过播放器抽屉的「历史」按钮进入</li>
+            <li><strong>电子书标注（高亮）</strong> — 内文选中文字后浮现工具条，可将选区存为高亮；位置以 <strong>EPUB CFI</strong> 存储，与渲染引擎无关</li>
+            <li>主进程新增 <code>ebook_highlights</code> 表与 4 个 IPC（新增 / 查询 / 删除 / 更新），新 handler 文件 <code>handlers/ebook.ts</code></li>
+            <li><code>bookReader</code> 新增 <code>getCurrentSectionIndex()</code> / <code>makeCfi(range)</code> / <code>rangeFromCfi(cfi)</code>，基于 foliate-js 的 <code>getCFI</code> / <code>resolveCFI</code></li>
+            <li>高亮使用<strong>独立的</strong> CSS Custom Highlight 注册表，与朗读高亮（蓝/灰）互不干扰 —— 停止朗读不会误删标注。标注支持 4 色，<strong>每色一个注册键</strong>（<code>unobox-ebook-highlight-{color}</code>），改色即按色重新分组注册；每次注册前先清空所有色键，否则改色后旧色的键仍持有原 Range，两层底纹会叠加</li>
+            <li>章节切换后按 CFI 重新解析 Range 渲染；同一章节内翻页不重算（带 (doc, sectionIdx) 缓存）</li>
+            <li>选区浮层 <code>SelectionToolbar</code>：高亮 / 复制 / 发送。用 <code>onMouseDown</code> 阻止默认行为，避免点击时清掉正文选区</li>
+            <li><strong>标注管理面板</strong> — 新增 <code>previews/EbookAnnotationPanel.tsx</code>，阅读器工具栏「标注」按钮进入（<strong>不依赖有声书状态</strong>，与书签按钮的 <code>audiobookActive</code> 门控不同）</li>
+            <li>列出本书全部标注：色条 + 摘录原文（4 行截断），支持<strong>跳转原文 / 改色（4 色）/ 编辑笔记（失焦即存）/ 发送到会话 / 删除</strong></li>
+            <li>改色与删除后经 <code>loadHighlights()</code> 重载并强制重绘当前章节高亮</li>
+            <li>笔记编辑用 <code>lastCommittedRef</code> 兜住「提交后父组件刷新 <code>highlights</code> 的延迟窗口」—— 否则在此期间重开编辑框会从旧的 <code>h.note</code> 回填，再失焦就把旧值写回去、覆盖刚编辑的内容</li>
+            <li><strong>书摘发送到会话</strong> — 从标注面板或选区浮层发起，文本格式 <code>「摘录」\n\n—— 《书名》</code>（书名取 EPUB 元数据，取不到则只发摘录）</li>
+            <li><strong>跨窗口中继</strong>：阅读器跑在独立 BrowserWindow 里（主进程 <code>window:open-preview</code> 新建），那个窗口没有聊天 store、也没有 <code>ProviderManager</code>（都在主窗口渲染进程），既拿不到房间清单也无法发送。因此新增 <code>digest:request</code>（预览窗口 → 主进程）与 <code>digest:request-forwarded</code>（主进程 → 主窗口）两个通道，由主窗口弹出会话选择并真正发送，复用现成的 <code>ForwardModal</code> + <code>useChatStore.sendMessage</code>（含乐观消息与指数退避重试）</li>
+            <li>主窗口会被置顶（<code>restore</code> / <code>show</code> / <code>focus</code>）—— 会话选择弹窗开在主窗口里，不置顶用户看不到</li>
+            <li><strong>阅读器查词 / 翻译（AI）</strong> — 内文选中文字后，选区浮层提供「翻译」「查词」两个入口，结果流式显示在右侧面板（与目录、搜索面板同一套容器样式）</li>
+            <li>新增 <code>hooks/useReaderAI.ts</code>（配置选取 / prompt 组装 / 流式状态机 / 卸载取消）与 <code>previews/ReaderAIPanel.tsx</code>（纯展示，状态由 hook 持有）</li>
+            <li><strong>配置获取不需要跨窗口中继</strong> —— AI 配置经 zustand <code>persist</code> 存在主进程 SQLite 的 <code>app_kv_store</code>（键 <code>unobox-ai</code>），而阅读器所在的预览窗口用的是<strong>同一份 preload</strong>（含 <code>api.db</code>），因此导入 <code>useAIStore</code> 即水合出同一份配置。这与书摘发送（走 <code>digest:request</code> 跨窗口）不同，是本次唯一「不需要新通道」的跨窗口能力</li>
+            <li>AI 调用复用聊天页的流式链路：<code>streamAIAPI</code> → <code>window.api.net.streamRequest</code> → 主进程 <code>net.fetch</code></li>
+            <li>prompt 要求「只输出结果本身」，避免模型寒暄污染结果区；翻译目标语言自动判断（译成中文，原文已是中文则译成英文）</li>
+            <li>结果可复制、可发送到会话（复用上面那条跨窗口发送链路，但<strong>原文样发出、不套书摘的《书名》出处</strong>）</li>
+            <li>面板底部显示 <code>配置名 · 模型</code>，保持用哪个模型透明（<strong>暂不支持切换模型或目标语言</strong>）</li>
+            <li><strong>朗读支持扩展到 TXT / Markdown / PDF</strong> — 此前朗读链路只在 <code>FoliatePreview.tsx</code> 里接好，三种目标格式的正文虽同在 DOM 中却无任何入口。现将编排抽出共享层后一并接入，四种格式都能点右下角浮动按钮起播</li>
+            <li>新增 <code>hooks/domBookReader.ts</code>（纯 DOM 的 <code>IBookReader</code>）与 <code>hooks/pdfBookReader.ts</code>（PDF 版）</li>
+            <li>新增 <code>hooks/domTtsAdapter.ts</code>：正文提取根由调用方给定，供三种主文档渲染的格式复用</li>
+            <li>TXT 用 <code>preRef</code>（<code><pre></code> 同时是滚动容器与正文根）、Markdown 用 <code>bodyRef</code>、PDF 用 react-pdf 的页容器 <code>div.react-pdf__Page</code></li>
+            <li><strong>PDF 把「一页」当作一个 section</strong>（<code>href</code>/<code>cfi</code> 均为 <code>page-N</code>）：换页即被上层判为「跨章节」，自动替换句子列表并续读下一页，直接复用现成的翻章逻辑</li>
+            <li>PDF 的 <code>next()</code> <strong>必须等目标页文本层渲染完成才 resolve</strong>。<code>playLoop</code> 读完后只等 600ms 就判定「无下一章」并写历史、停止播放，而文本层重建加 pdf.js 异步渲染远超该窗口 —— 若 <code>next()</code> 是同步翻页，会变成每读一页结束一次会话</li>
+            <li>单 section 的格式（TXT / Markdown）无章节概念，抽屉里的章节箭头<strong>不渲染</strong>（<code>AudiobookDrawer</code> 的 <code>onPrevChapter</code>/<code>onNextChapter</code> 改为可选）</li>
+            <li>新增 <code>utils/readerLocation.ts</code> 统一 DOM 版预览的阅读位置持久化（<code>dom-reader-<em></code> 键，与 foliate 的 <code>foliate-</em></code> 键互不影响）</li>
+          </ul>
+          <h3>修复</h3>
+          <ul>
+            <li><strong>收听时长把暂停时间也算进去</strong> — 旧实现用「会话开始 → 章节结束」的墙钟差值计算 <code>durationSeconds</code>。改为仅在 <code>isPlaying</code> 为真时累加。实测：听 2 分钟、暂停 1 小时、再听完一章，旧实现记约 62 分钟</li>
+            <li><strong>分句偏移对不上导致整句静默不高亮</strong> — 句子文本取自归一化后的块文本（<code>\s+</code>→单空格 + trim），却拿它去<strong>原始</strong>文本里 <code>indexOf</code> 定位，空白不一致时返回 -1 并 <code>continue</code>，该句永远不高亮。现偏移直接由文本节点算出，不经过字符串匹配</li>
+            <li><strong>嵌套块重复计入导致同一句被读多遍</strong> — 旧实现收集块级元素后取 <code>textContent</code>，<code><div class="wrapper"><section><p>…</code> 结构下 div/section/p 均命中 <code>BLOCK_TAGS</code>，同一句被计入 3 次。改用 foliate-js <code>tts.js</code> 的「按块起始位置顺序分段」算法</li>
+            <li><strong><code>findFirstVisibleSentenceIdx</code> 混用两套坐标系</strong> — 拿 iframe 内的 <code>Range.getBoundingClientRect()</code> 与<strong>宿主窗口</strong>的 viewport 比较。现统一在文档自身的视口（<code>documentElement.clientWidth/Height</code>）内比较</li>
+            <li><strong><code>textSplitter.ts</code> 两个零消费者死字段</strong> — <code>SentenceItem.paragraphIndex</code> / <code>sentenceInParagraph</code> 全仓库无引用，已移除（该文件随后于同日整体删除，见「重构」末条）</li>
+            <li><strong>停止朗读后高亮残留</strong> — 根因不在高亮机制，而在 <strong>foliate 代为选中</strong>：<code>renderer.scrollToAnchor(range, true)</code> 的第二个参数为 <code>true</code> 时，foliate 以 <code>reason='selection'</code> 触发 relocate，进而执行 <code>setSelectionTo(anchor, 0)</code> —— <strong>不折叠的整段选中</strong>，在页面上画出一层 <code>::selection</code> 底纹。它不受 <code>CSS.highlights</code> 清除影响、也扛得过重绘，因此长期被误判为「高亮残留」。改为传 <code>false</code>（走 <code>reason='navigation'</code>，只折叠成光标且不可见；两者在 paginator <code>#afterScroll</code> 中分支完全相同，滚动行为不受影响），并在 <code>clear()</code> 中一并清掉选区作为兜底</li>
+            <li><strong>翻页热区盖住正文</strong> — 左右热区原为各 <code>35%</code> 宽、整高，会把正文显示区域一并覆盖。改为 <code>48px</code>（取 foliate paginator 的 <code>--_margin</code> 页边距），热区只落在页边距内，点击正文不再触发翻页</li>
+            <li><strong>朗读起始位置三个选项均从章节开头起播</strong> — 两个成因叠加：<br>① <code>findFirstVisibleUnit()</code> 参照系错误 —— foliate 分页模式把 iframe 撑到整个内容宽度、翻页靠滚动<strong>父文档</strong>中的容器，因此在 iframe 内部所有单元相对自身视口都「可见」，用 <code>documentElement.clientWidth</code> 判断会永远命中第 0 个（日志表现为 <code>首可见句=0</code>）。改为把 range 矩形叠加 iframe 元素偏移换算到父坐标系再比较。<br>② 跨章 relocate 处理器抢跑 —— 会话开始时 <code>sectionRef.current</code> 仍为旧值，首次 relocate 必被判为跨章，该分支会 <code>setCurrentSentenceIdx(0)</code> 并在 200ms 后 <code>playLoop(0)</code>，与 500ms 后才执行的 <code>startReading(所选句)</code> 形成两个并发的播放循环。改为仅当「relocate 当下 <code>isPlaying</code> 为真」（即播完本章自然翻章）才自动起播；用户主动开播时 <code>startSession</code> 已将 <code>isPlaying</code> 置为 false，不会再抢跑</li>
+            <li><strong>主窗口引用拿到永久 <code>null</code> 快照，导致标题栏三个按钮与两处 IPC 推送全部失效</strong> — <code>main/index.ts</code> 中 IPC handler 注册<strong>刻意</strong>排在 <code>createWindow()</code> 之前（窗口一加载就会发 IPC，此时 handler 必须已就绪，顺序不能调换），而 handler 里 <code>const { mainWindow } = deps</code> 是<strong>值快照</strong> —— 注册那刻主窗口尚未创建，拿到的永远是 <code>null</code>。受影响的不止标题栏：</li>
+            <li><code>handlers/ui.ts</code> 的 <code>window:minimize</code> / <code>maximize</code> / <code>close</code> → 三个按钮全为空操作（该 UI 有 <code>platform !== "darwin"</code> 门控，<strong>macOS 上不渲染</strong>，故长期未被发现）</li>
+            <li><code>handlers/media.ts</code> → <code>media:status</code> 推送从不发出，<code>App.tsx</code> 的 ffmpeg 状态与「缺失引导弹窗」不会随保存路径更新</li>
+            <li><code>handlers/fileops.ts</code> → <code>showSaveDialog(mainWindow!)</code> 传入 <code>null</code>，另存为对话框没有父窗口（不模态）</li>
+            <li><code>scheduler.ts</code> → 构造时存下 <code>null</code>，定时消息「已派发」通知从不推送，<code>ChatView</code> 不会在到期消息自动发布后刷新</li>
+            <li>另有 7 个 handler 声明了 <code>mainWindow</code> 却从不使用</li>
+            <li><strong>修法</strong>：新增 <code>main/mainWindow.ts</code> 提供 <code>setMainWindow()</code> / <code>getMainWindow()</code>，主窗口一律在<strong>调用时</strong>取，由 <code>createWindow()</code> 注册引用。同时从全部 9 个 handler 的 Deps 中<strong>删除</strong> <code>mainWindow</code> 参数 —— 拆掉这个「传值快照」的口子本身，避免再次踩坑（删字段后任何残留用法都会编译报错，由类型系统保证无遗漏）</li>
+            <li>附带收益：消掉 3 条 ESLint 未使用变量 warning（89 → 86）</li>
+            <li><strong><code>endSession()</code> 从死代码变为有调用点（防御性改动，当前场景不可达 —— 曾误判为可复现缺陷）</strong> — <code>useAudiobookStore.endSession()</code> 此前全仓库零调用，现在由 <code>useAudiobookSession</code> 的 cleanup 调用（<code>pauseReading()</code> + <code>clearHighlight()</code> + <code>endSession()</code>），键取 <code>bookPath</code>。</li>
+            <li>⚠️ <strong>更正</strong>：本条最初被记为「跨格式会话残留」缺陷（在 TXT 里读到第 500 句 → 关闭 → 打开 PDF → 拿 TXT 的句子列表朗读 PDF 正文），并称其为可见行为变更。<strong>该症状不可达</strong>，两个前提都不成立：</li>
+            <li>每个预览都是<strong>独立的 BrowserWindow</strong>，src 在 <code>main/handlers/ui.ts:60,76</code> 生成 URL 时写死、由 <code>main.tsx:19-26</code> 渲染时读取一次，之后没有任何路径改写它（<code>window:open-preview</code> 每次新建窗口，不复用、不切 src）。独立窗口即独立渲染进程，zustand store 是模块级单例、<strong>按渲染进程隔离</strong>，因此 <code>isActive</code> / <code>sentences</code> 根本不会跨文件/跨格式传递</li>
+            <li>预览窗口关闭是<strong>真销毁</strong>（无 <code>close</code> → <code>hide</code> 拦截），teardown 只在那一刻运行，store 随之丢弃 —— 所以这段 cleanup 在当前窗口模型下是空操作</li>
+            <li>连带更正：「重开同一本书会直接续播」也不成立 —— 重开即新窗口、store 全新，<code>isActive</code> 本来就是 false，起始位置弹窗在改动前后都会出现，<strong>不是行为变更</strong></li>
+            <li>保留它的价值：① <code>endSession</code> 不再是无调用点的死代码；② 若将来 <code>window:open-preview</code> 改为复用窗口并在窗口内切换 src，这一残留会立刻变成真问题（那时 <code>bookPath</code> 为键的 teardown 正是需要的）</li>
+            <li>教训：这条缺陷是<strong>子代理调查 + 代码审查</strong>给出的，双方都基于「组件会在同一窗口内换 src」这一未经核实的假设推演出了完整症状链。教训是<strong>协议/生命周期类结论必须回到底层代码核实</strong>（窗口创建处），而不是从组件内部的 effect deps 反推</li>
+            <li><strong><code>startReading</code> 未裁剪恢复索引</strong> — 恢复进度传入的 <code>restoreIdx</code> 直接进了 <code>playLoop</code>，越界时 <code>for</code> 循环一次都不执行、直接落到「本章播完」分支；而它前面已 <code>setPlaying(true)</code>，会被 relocate 处理器当成「自然翻章」接着从下一节第 0 句起播（表现为静默跳读）。<code>seekTo</code> 早有同样的裁剪，<code>startReading</code> 漏了。PDF 的句索引是<strong>页内</strong>的，换页后长度必然不同，这个缺口由此变成必现路径</li>
+            <li>对 EPUB 是恒等变换（<code>restoreIdx</code> 恒小于句数），不改变现有行为</li>
+            <li><strong>点「上一章 / 下一章」后停播</strong> — 抽屉上两个章节按钮在播放中点击会<strong>停掉音频</strong>，抽屉显示 ▶，需手动再点播放。根因是跨章 relocate 处理器的 <code>wasPlaying</code> 闸门：两个按钮在 <code>await reader.next()/prev()</code> <strong>之前</strong>就会 <code>player.stop()</code> + <code>setPlaying(false)</code>，于是 relocate 到达时 <code>isPlaying</code> 已是 false，与「用户刚点开播」无法区分 —— 而后者正是该闸门当初要挡住的「抢跑」（见上方重构段），所以不能简单放宽它</li>
+            <li>也不能简单地「按钮不置 <code>isPlaying=false</code>」：末章点「下一章」时 <code>reader.next()</code> 直接返回、不会起播，<code>isPlaying</code> 会永远停在 true（抽屉显示播放中却无声）</li>
+            <li>修法：新增一次性标志 <code>resumeAfterChapterChangeRef</code>，由按钮在<strong>换章前正在播放</strong>时置位，跨章 relocate 处理器读到它即继续起播。三个读写点各有必要：</li>
+            <li><strong>消费</strong>：relocate 处理器分支<strong>之前</strong>读取并清零（不分跨章与否）。放在分支前是刻意的 —— 若某次 relocate 不跨章，标志也必须失效，否则会泄漏到之后某次真正跨章的 relocate 上，让<strong>已暂停</strong>的会话被意外起播</li>
+            <li><strong>作废</strong>：会话层发起导航前调 <code>clearPendingChapterResume()</code>。末章点「下一章」不会产生 relocate，标志会留存，若此后用户走「继续上次进度」触发跨章 relocate，陈旧标志会让处理器抢先 <code>playLoop(0)</code>、与 <code>startReading</code> 形成两个并发循环 —— 正是当初修掉的抢占</li>
+            <li><strong>兜底</strong>：<code>playLoop</code> 入口再清一次，覆盖「末章点下一章 → 无 relocate → 之后直接开播」这条边角</li>
+            <li>为什么不用计时器过期：PDF 的换章要等目标页文本层渲染完成，耗时无上限，任何固定时限都可能先于 relocate 到期</li>
+            <li>顺带修掉一处不一致：<code>prevChapter</code> 的 <code>catch</code> 原先<strong>无条件</strong> <code>playLoop(0)</code>，导致暂停状态下点「上一章」会自行开始朗读，而「下一章」是静默换章。现改为两者都只在原本播放时续播</li>
+            <li><strong>TXT 以空行开头时整本读不出（新接入格式的路径）</strong> — <code>getBlockSegments</code> 的回退分支（根内没有任何块级标签时）把段起点落在 <strong>root 的第一个子节点</strong>上，而 <code>extractReadableText</code> 只对段起点元素做可读性判定，<code>isReadable</code> 又会剔除「文本不足 2 字符」的元素。TXT 正是这种形态：<code><pre></code> 里全是扁平 <code><span id="p-i"></code>，<code>span</code> 不在 <code>BLOCK_TAGS</code> 里、<code><pre></code> 自身又不会被 TreeWalker 访问到，于是必然走回退分支。文件以空行开头时 <code>displayParagraphs[0] === ""</code>，首段就是空串，整篇被判为不可读而<strong>整本丢掉</strong> —— fullText 为空、0 句，点浮动按钮毫无反应（日志只打一行「无可读文本」）</li>
+            <li>修法：回退分支的起点改用 <strong>root 自身</strong>，判定的就是一整篇的长度</li>
+            <li>EPUB 不受影响：章节 body 内通常有块级标签，回退分支不会被走到；即便走到（body 内只有一个裸文本节点），起点元素仍是 body，与旧行为等价</li>
+            <li><strong>PDF 并发翻页等待时 Promise 永久挂起</strong> — <code>waitForTextLayer</code> 原先把待命 resolver 存在<strong>单个槽位</strong>里。4 秒窗口内并发两次等待（<code>playLoop</code> 收尾的 <code>await reader.next()</code> 与用户点抽屉「下一章」重叠，或连点两次章节箭头）时，后一次会覆盖槽位，而前一个 Promise 的超时判据是「拿自己与槽位比对」，覆盖后同样失效 —— 于是它<strong>永不 settle</strong>：<code>await goToPage()</code> 永久挂起，其后的写收听历史与 <code>setPlaying(false)</code> 都不再执行；走 <code>navigateThenStart</code> 的「书首 / 继续上次进度」则永不起播</li>
+            <li>修法：槽位改为 <code>Set</code>，超时用 <code>Set.delete</code> 的返回值当「是否仍在等待」的判据（已完成的等待者会先被 delete，不会重复 resolve）</li>
+            <li><strong><code>DomBookReader.emitRelocate()</code> 是死代码，且注释声称了一个不存在的契约</strong> — 该方法在生产代码里零调用点（PDF 版阅读器有自己的 <code>emitRelocate</code>，因为页码就是它的 section），而 <code>onRelocate</code> 上方注释却写着「其余由宿主在内容变化时显式调用 <code>emitRelocate()</code>」。这会让维护者以为存在一条并不存在的通知链路</li>
+            <li>修法：删掉该方法与其 2 条测试；注释改为说明「只在订阅时补发一次」以及为什么 TXT / Markdown 不需要主动通知（<code>href</code> 恒定，正文被改写时变的是 DOM 节点身份而非句子文本，那是 TTS 适配器的职责，由宿主重建适配器解决）</li>
+            <li><strong>本地 <code>pnpm test</code> 在 <code>@unobox/ws-server</code> 硬失败（原生模块 ABI 冲突）</strong> — 排查 <code>pnpm test</code> 时发现 <code>Test Files 2 failed | 2 passed (4)</code>、<code>Tests 1 failed | 39 passed | 53 skipped</code>。根因是<strong>构建目标冲突</strong>，与业务代码无关：</li>
+            <li><code>apps/desktop</code> 的 <code>postinstall</code> 执行 <code>electron-rebuild -v 32.3.3 -f</code>，把 <code>better-sqlite3</code> 编成 <strong>Electron 的 ABI 128</strong></li>
+            <li>原生模块在 pnpm 的<strong>共享 store</strong>（<code>node_modules/.pnpm/…</code>）里只有一份、并非每包一份，于是这份 Electron ABI 的产物被全局解析</li>
+            <li><code>pnpm test</code> 跑在纯 Node（24 → <strong>ABI 137</strong>）下，<code>new Database()</code> 即抛 <code>NODE_MODULE_VERSION</code> 不匹配</li>
+            <li>表现：<code>beforeAll</code> 抛错 → 整份套件被跳过。<code>auth.test.ts</code> 16 个全 skip、<code>db-sqlite.test.ts</code> 38 个变成 1 failed + 37 skipped；<code>config</code>(8) 与 <code>policy</code>(31) 不碰 DB 所以全过</li>
+            <li><strong>仅本地现象</strong>：<code>postinstall</code> 有 <code>if (!process.env.CI)</code> 门控，CI 下原生模块保持 Node ABI，这些测试不受影响 —— 大概也是它一直没被发现的原因</li>
+            <li><strong>修法</strong>：移植 <code>packages/core/src/db/__tests__/IDatabaseProvider.test.ts</code> 已有的探测护栏到 <code>backend/ws-server</code> 的两个 DB 测试文件，原生绑定不可用时 <code>describe.skip</code> 整份套件而非硬失败</li>
+            <li>一个易错点：<code>import Database from "better-sqlite3"</code> <strong>本身不会抛</strong> —— 原生模块在首次 <code>new Database()</code> 时才加载，所以探测必须真的构造一个实例（<code>new Database(":memory:").close()</code>），只 try 住 import 是探测不到的</li>
+            <li>与 core 的写法有细微差异：core 用 <code>require</code>，这里改用静态 import + 构造探测，避免在 <code>"type": "module"</code> 的包里用 CJS <code>require</code></li>
+            <li>代价：Electron 重编后这 54 个用例会被静默跳过（已加 <code>console.warn</code> 使跳过可见），不再报错但也不再验证</li>
+          </ul>
+          <h3>重构</h3>
+          <ul>
+            <li><strong>新增 <code>utils/speechPlan.ts</code>（统一正文源）</strong> — 朗读文本与高亮映射消费同一份 canonical 全文，每个朗读单元保留<strong>绝对偏移</strong>（<code>start/end</code> 与 <code>rawStart/rawEnd</code> 区分空白），不再用「trim 后累计长度」这种会漂移的方式</li>
+            <li>分句主路径改用 <code>Intl.Segmenter</code>（分段自带 <code>index</code>，偏移天然精确，且能正确处理英文句号与缩写）；环境不支持时回退标点扫描</li>
+            <li>注意：未采用纯正则扫描方案 —— 其句末符集合不含英文句号 <code>.</code>，会导致英文书被当成 400 字符一段的超长句</li>
+            <li>超长句按软断点（逗号等）回退切分，上限 400 字符</li>
+            <li><strong>新增 <code>utils/ttsHighlighter.ts</code>（Range + CSS Custom Highlight）</strong> — 高亮不再 <code>surroundContents</code> 包裹 <code><span></code>，正文 DOM 保持原样</li>
+            <li>两个注册表：当前句（蓝底纹）与已读句（灰底纹），已读窗口上限 200 句</li>
+            <li>按文档分组注册，跨 realm 分别注册；<code>charMap</code> 按偏移有序，区间切分走二分定位</li>
+            <li><code>clear()</code> 按 key 清除<strong>所有可达的同源文档</strong>（递归下探 open shadow DOM 与嵌套 iframe）—— 两个 highlight 键是模块级常量、所有实例共用</li>
+            <li><strong><code>hooks/foliateTtsAdapter.ts</code> 重写</strong> — 内部改用上述两个模块，<strong>对外 <code>ITTSAdapter</code> 接口保持不变</strong>，<code>useAudiobook</code> 无需感知实现变化。随之取消「已读标记超 200 个清理一半」的补丁</li>
+            <li><strong>排版设置改为合并持久化</strong> — 由分散的 <code>foliate-fontsize-{src}</code> / <code>foliate-linespacing-{src}</code> 合并为单个 <code>foliate-typography-{src}</code>，并保留读旧键的回退，已有用户的字号/行距不丢</li>
+            <li><strong>默认状态下注入的 CSS 与改动前逐字节一致</strong> — 所有样式项只在偏离默认值时才输出声明，全默认时不产生任何覆盖，不影响任何现有书籍的渲染（已用脚本对 <code>git show HEAD</code> 旧实现逐字节比对验证）</li>
+            <li><strong>删除 legacy 朗读路径（<code>textSplitter.ts</code> + <code>domMarker.ts</code>，-344 行）</strong> — 适配器接管后这两个模块仅作 <code>getAdapters()</code> 在适配器缺失时的回退。经核实该回退<strong>不可达</strong>：<code>createFoliateTTSAdapter()</code> 无 early return、必然返回有效适配器，且 <code>useAudiobook</code> 中所有 <code>extractSentences</code> / <code>markSentences</code> 调用点都位于朗读会话内（会话只能由阅读器加载后开始），<code>setTTSAdapter(null)</code> 只发生在组件卸载、此时 hook 已随之销毁</li>
+            <li><code>SentenceItem</code> 类型迁至 <code>hooks/foliateTtsAdapter.ts</code>（<code>ITTSAdapter</code> 所在处）</li>
+            <li>门面 <code>getAdapters()</code> 保留原形状、改用可选链，<strong>12 个调用点零改动</strong> —— 该文件是全项目最脆弱、刚稳定的一处，刻意避免大范围改动引入回归</li>
+            <li>一并删除 <code>playLoop</code> 中依赖 legacy DOM 标记 <code>[data-tts-idx]</code> 的跟随分支：适配器路径下该元素从不存在、<code>el</code> 恒为 <code>null</code>，故行为等价</li>
+            <li><strong>抽出 <code>utils/aiStream.ts</code>（AI 流式调用）</strong> — <code>streamAIAPI</code> 与两个 SSE 解析器原先私有在 <code>AIChatView.tsx</code> 里，虽已无状态（不碰 <code>AISession</code> 与 store）但未导出。原样搬出供阅读器复用，<code>AIChatView</code> 改为导入；<strong>204 行逐字节未改</strong>，聊天页零行为变化</li>
+            <li>注意：Provider 适配仍是 if/else 硬编码（gemini / claude / OpenAI 兼容），<code>packages/core</code> 不参与对话 —— 这是既有状况，本次搬家未改变</li>
+            <li><strong>泛化跨窗口发送入口</strong> — <code>requestSendDigest</code> → <code>requestSendText(text, label)</code>，书摘与 AI 结果共用同一条跨窗口链路，只是送入文本不同（书摘带《书名》出处，AI 结果原样发出）</li>
+            <li><strong>正文提取改为「按容器作用域」</strong> — <code>extractReadableText</code> / <code>getBlockSegments</code> 的入参由 <code>Document</code> 改为<strong>正文根元素</strong>（内部从 <code>root.ownerDocument</code> 取文档）。原先硬编码遍历 <code>doc.body</code>，只有「内容就在 iframe body 里」的 EPUB 成立；TXT / Markdown / PDF 都渲染在<strong>主文档</strong>中，直接传 <code>document</code> 会把侧边栏、工具栏、搜索面板整个应用 UI 当正文读进去。EPUB 侧传 <code>doc.body</code>，与旧实现内部所用节点完全一致，<strong>行为逐字节等价</strong>（<code>TtsHighlighter</code> 不引用 <code>doc.body</code>，只从 <code>charMap</code> 的 Range 工作，无需改动）</li>
+            <li><strong>抽出共享朗读编排（<code>hooks/useAudiobookSession.ts</code> + <code>components/AudiobookOverlay.tsx</code>）</strong> — 8 个朗读 UI 组件本身早已是独立文件，但<strong>把它们串起来的编排全部内联在 <code>FoliatePreview.tsx</code> 里</strong>。现按「引擎无关 / 引擎专属」切开：</li>
+            <li><code>useAudiobookSession(host)</code> 持有全部朗读编排与 UI 状态并返回一个 controller；<code><AudiobookOverlay></code> 只做渲染，<strong>自身零状态</strong></li>
+            <li>宿主接口刻意只留 6 个成员（<code>bookPath</code> / <code>reader</code> / <code>containerRef</code> / <code>log</code> / <code>restoreLocation</code> / <code>persistLocation</code>），后两个把「位置存哪两个键、存什么值」挡在共享层外</li>
+            <li><strong>导航归 <code>IBookReader</code>，持久化归宿主</strong>：新增 <code>IBookReader.goToStart()</code> 与 <code>hasChapters()</code>。前者不能用 <code>navigateToLocation({fraction:0})</code> 表达 —— 该方法的 <code>fraction > 0</code> 守卫必须保留，因为 <code>lastLocation</code> 初值就是 <code>fraction:0</code>，0 同时表示「书首」与「未设置」，放行 0 会引入回归。<code>navigateToLocation()</code> 此前零调用，现用于书签跳转与「继续上次进度」的定位，因此不必新增宿主成员</li>
+            <li>页码信息（起始位置弹窗的文案）走 <code><AudiobookOverlay pageInfo></code> 这个<strong>普通 prop</strong> 而非 hook 成员：它需要渲染时新鲜的值，做成 reader getter 会形成「靠宿主 re-render 才正确」的隐式约定，加一层 <code>memo</code> 就静默失效。非分页阅读器不传，<code>AudiobookPositionDialog</code> 的 <code>currentPage</code> / <code>totalPages</code> 随之改为可选并降级为不带页码的文案（新增 <code>audiobookFromCurrentDescPlain</code>）</li>
+            <li>新增 <code>ready</code> prop 是必需的 —— 原先浮动按钮的 <code>visible</code> 混着宿主的加载态（<code>!loading && !error</code>）。缺了它会出现「卡死的活跃会话」：DOM 三种格式正文异步到达，若正文就绪前可点，<code>startReading</code> 取到 0 句后 return，但 <code>startSession</code> 已把 <code>isActive</code> 置真，抽屉点播放无反应</li>
+            <li>FAB 的裁切层<strong>没有新增</strong>：<code>FilePreview</code> 的内容区本就是 <code>overflow: hidden</code>，预览根节点（FAB 的包含块）在其内部，折叠成半圆的效果四种格式今天都已成立</li>
+            <li><code>FoliatePreview.tsx</code> 1733 → 1517 行（净减约 216 行）</li>
+            <li><strong><code>utils/ttsHighlighter.ts</code> 的 <code>findFirstVisibleUnit</code> 去掉对 iframe 的硬依赖</strong> — 原先 <code>if (!frameEl) return 0</code>，而 TXT / Markdown / PDF 的正文都在<strong>主文档</strong>里，<code>frameElement</code> 恒为 null，于是「从当前阅读位置开始」永远命中第 0 句。改为按「是否同一文档」分流：同文档时偏移恒为 0（此时也不能再看 <code>frameElement</code> —— 万一整个应用被嵌在 iframe 里，<code>frameElement</code> 非空但两边坐标已同源，再叠加偏移就是重复计数）；跨文档且有 <code>frameElement</code> 时保持原有换算。EPUB 分支的代码路径、比较顺序与容错逐字节未变</li>
+            <li><strong><code>domTtsAdapter</code> 的失效判据是两层，且主判据在宿主侧</strong> — 只靠「节点是否 <code>isConnected</code>」不够：TXT 的 <code><span key={i}></code> 在换文件时会被 React 复用并<strong>原地改写 <code>nodeValue</code></strong>，节点始终连通，于是会拿着上一本书的偏移去朗读新 DOM（静默错读）。因此主判据是宿主在 <code>src</code> / <code>content</code> 变化时<strong>重建适配器实例</strong>（新实例即空缓存），连通性检查只作兜底，覆盖 PDF 换页/缩放（文本层 key 含 pageIndex 与 scale，必然整棵重挂）与 TXT / Markdown 全文搜索（<code>replaceChild</code> 替换文本节点）这两种宿主不知情的失效</li>
+            <li>适配器内的 highlighter 一律<strong>复用</strong>而非重建：<code>TtsHighlighter.destroy()</code> 会摘掉文档里的高亮样式表，而用户标注与朗读高亮共用同一份样式，重建会把标注的底纹一并干掉</li>
+            <li>未与 <code>foliateTtsAdapter</code> 合并：差异不止「正文根从哪来」一处（正文根、失效判据、滚动方式、可见性坐标系、<code>isSentenceInViewport</code>），可共享的仅约 60 行；那条链路刚稳定且渲染层无任何测试设施，用少量重复换零回归风险</li>
+          </ul>
+          <h3>待办</h3>
+          <p><strong>PDF / TXT / MD 朗读支持 —— 三段均已完成</strong>（见上方「新增」「重构」）。当时预判的两个 PDF 坑，实际情况记录于此，供后续接新格式时参考：</p>
+          <ul>
+            <li><strong>「高亮矩形要与 pdf.js 自己算的 span 几何对齐」——此坑不存在</strong>。采用 Range + CSS Custom Highlight 后，Range 的容器就是 pdf.js 自己创建的 <code>.textLayer > span</code>，其盒子本就与 canvas 字形一一对应，<code>::highlight()</code> 画在 span 自身的盒子里，几何自动一致。另需三点同时成立，已核对：<code>.textLayer</code> 是 <code>z-index:2</code> 且在 canvas <strong>之后</strong>渲染（高亮在 canvas 之上）；span 是 <code>color: transparent</code>，而 <code>::highlight()</code> 画在文字背景层、与 <code>color</code> 无关（可见）；水平缩放用的 <code>transform: scaleX()</code> 被 Range 的 rect 包含。唯一「不对齐」的现实现象是背景条比字形略高（span 盒高≈字号），与 pdf.js 原生选择框一致，不算缺陷</li>
+            <li><strong>「翻页 DOM 重建、游标需重挂」——存在，但比预想的多一处</strong>：react-pdf 内部文本层的 key 是 <code>${pageIndex}@${scale}/${rotate}</code>，<strong>缩放变化同样整棵重挂</strong>。因此 <code>emitRelocate()</code> 挂在<strong>每一次</strong>文本层渲染完成上，而非只挂页码变化</li>
+            <li>另一处当时未预见、实现时才发现的关键点：<code>next()</code> 若同步翻页会让 <code>playLoop</code> 的「600ms 判定」误判为无下一章（详见「新增」段）</li>
+          </ul>
+          <p><strong>其他待办</strong></p>
+          <ul>
+            <li><strong><code>handleHideDrawer</code> 有既有的重复写库</strong>：同一个 <code>saveProgress</code> 载荷被构建并写入<strong>两次</strong>（<code>s</code> 与 <code>store</code> 两次 <code>getState()</code>，中间无状态变更，内容完全相同）。搬到共享层时<strong>两个 <code>saveProgress</code> 调用原样保留</strong>，只把它中间那段 foliate 专属的 localStorage 写入换成了 <code>persistLocation()</code>；重复本身未改（重构要求行为零变化）</li>
+            <li><strong>新接入的三种格式尚未具备的能力</strong>（本次刻意不做，避免范围蔓延）：</li>
+            <li>标注 / 书摘 / 查词翻译 —— 依赖 EPUB CFI，<code>DomBookReader</code> / <code>PdfBookReader</code> 的 <code>makeCfi</code> 返回 null，属正确降级</li>
+            <li>工具栏书签按钮 —— TXT / Markdown / PDF 用的是各自的极简工具栏（非 <code>useSharedReaderToolbar</code>），加按钮要动它们的结构。朗读抽屉与浮动按钮不受影响</li>
+            <li><strong>PDF 的导出只覆盖当前页</strong> —— <code>AudiobookExportDialog</code> 导出的是当前 <code>sentences</code>，而 PDF 的句子列表是按页提取的</li>
+            <li><strong><code>AudiobookSleepTimer</code> 的「本章结束」（<code>-1</code>）模式不工作</strong>（既有缺陷）：<code>remaining</code> 由 <code>sleepTimerMinutes = -1</code> 立刻算出 0 并触发 <code>onExpire</code>，且 <code>useAudiobook</code> 全文没有任何 <code>sleepTimerMinutes</code> 消费点 —— 定时器只在弹窗打开期间生效。本次未动</li>
+            <li><strong><code>isSentenceInViewport</code> 是死代码</strong>（<code>useAudiobook.ts</code> 定义、<code>ITTSAdapter</code> 声明，但全仓库无调用点）。两个 DOM 适配器按接口要求返回 false，未清理</li>
+            <li>Step 3 剩余：<code>「最近阅读」视图</code>、<code>阅读数据导出</code></li>
+            <li>收尾类：<code>useAudiobook.ts:401</code> 多余依赖、三处 <code>any</code>、<code>en.json</code> 对有声书/阅读器子系统零覆盖（本次新增的 <code>audiobookFromCurrentDescPlain</code> 只进了 zh-CN，与既有 15 个朗读相关 key 的现状一致）、<code>zh-CN.json</code> 英文值残留（本次顺手修了 <code>copyContent</code> 一条）、<code>docs/未完成工作清单.md</code> 与 <code>docs/有声书功能检视报告.md</code> 两份过时文档</li>
+            <li><strong>轮代码审查发现、但本次未修的既有问题</strong>（已核实存在，改动前就有，本次只是搬动或扩大适用面。记录以免丢失）：</li>
+            <li><strong>睡眠定时器「一闪而过」（既有，本次未修）</strong> —— <code>AudiobookSleepTimer</code> 用 <code>sleepTimerStartedAt</code> 算剩余。<strong>可达路径</strong>（全程在同一个窗口内）：设一个定时器 → 关掉弹窗 → 等超过该时长 → 再打开弹窗 → <code>remaining</code> 算出 0 → 立刻 <code>onExpire()</code>（暂停播放）并自关。</li>
+            <li>本次曾在 <code>endSession</code> 里清 <code>sleepTimerMinutes</code> / <code>sleepTimerStartedAt</code>，但<strong>对该路径无效</strong>：<code>endSession</code> 只在窗口销毁时被调用（见上方 <code>endSession</code> 条目），而这条路径里会话从未结束。那次清理属顺手为之，不构成修复。</li>
+            <li>真正的修法应在弹窗打开时判定「计时已过期且早已触发过」，直接清空而非再次 <code>onExpire</code>；或把定时器状态收敛到播放会话的生命周期上。</li>
+            <li><strong>跨章 relocate 的延迟回调从不取消</strong>（<code>useAudiobook.ts</code> 跨章分支的 <code>setTimeout(…,200)</code> + <code>setTimeout(playLoop,200)</code>，全文无 <code>clearTimeout</code>，effect cleanup 只有 <code>return unsub</code>）。在这个约 400ms 窗口内点「停止/暂停」，回调仍会触发，而 <code>playLoop</code> 开头会无条件把 <code>abortedRef</code> 与 <code>highlightSuppressedRef</code> 都置回 false —— <strong>停止被静默撤销</strong>，音频从新章第 0 句重新起播、刚清掉的底纹重新出现。机制在 HEAD 就有，本次新增的 <code>highlightSuppressedRef</code> 让「撤销」变得可见</li>
+            <li><strong>书签跳转不 await 异步导航</strong>（<code>useAudiobookSession.jumpToBookmark</code>）：<code>navigateToLocation</code> 内部 <code>await viewer.goTo(href)</code>，但代码立刻调 <code>seekTo</code>，而 <code>seekTo</code> 只等 100ms 就重新提取句子。EPUB 播放中跨章跳书签时，会从<strong>旧章节</strong>文档提取并把 <code>bookmark.sentenceIndex</code> 夹进旧列表 → 一段错章音频/高亮，随后 relocate 替换列表并强制索引 0，书签句被丢弃。HEAD 的 <code>FoliatePreview.tsx</code> 是完全相同的写法，本次只是搬进新模块并换成 <code>navigateToLocation</code></li>
+            <li><strong><code>highlightUnit</code> 每句都重建整份「已读」高亮</strong>（<code>utils/ttsHighlighter.ts</code>）：<code>MAX_PLAYED_UNITS = 200</code> 个旧单元全部重新解析 Range 并重新注册，而实际每句只进入/离开两个单元。每句一次、贯穿整个收听过程，foliate 每次翻页的 relocate 重高亮还会再来一次</li>
+            <li><strong><code>extractReadableText</code> 的 O(块数 × 文本节点数) 扫描</strong>：每个 block segment 都全量遍历 <code>textNodes</code> 做 <code>intersectsNode</code>，且 <code>getBlockSegments</code> 对每段做整段 <code>toString()</code> 序列化。大型 Markdown（无大小上限）或大 EPUB section 首次提取会有秒级卡顿。有缓存，所以是一次性代价</li>
+            <li><strong>PDF 文本层「过期渲染回调」的残余竞态（本次引入，未完全消除）</strong> — <code>onRenderTextLayerSuccess</code> <strong>不带页码</strong>，而判断「这一页渲染好了」只能靠 <code>pageNumberRef</code>。react-pdf 的文本层渲染 effect 虽返回了 <code>cancelRunningTask(runningTask)</code>，但若 <code>render()</code> 的 promise 已经 fulfill、其 <code>.then</code> 微任务已入队，<code>cancel()</code> <strong>撤不掉已入队的微任务</strong>，回调仍可能在新页 commit 之后到达；此时它会唤醒新页的等待者，让 <code>goToPage</code> 提前返回、从尚未就绪（甚至已被 <code>layer.innerHTML = ''</code> 清空）的文本层提取正文，进而写出一条 <code>(page-N+1, 指向第 N 页列表的索引)</code> 的错配进度。</li>
+            <li><strong>窗口很窄</strong>（需要 commit 恰好落在那个微任务 drain 之前），且页容器上的 <code>data-page-number</code> 在 commit 时就会更新，<strong>反而会把迟到回调误判成当前页</strong>，所以不能用它当判据。</li>
+            <li>彻底消除需要让等待者校验文本层内容确实属于目标页。当前无可靠判据，故保留现状并记录。</li>
+            <li><strong>渲染层测试基础设施已补，但覆盖面仍很小</strong> —— <code>apps/desktop</code> 增加了 <code>test</code> script 与 <code>vitest.config.ts</code>（配置与 <code>packages/core</code> 一致：<code>vitest run --passWithNoTests</code>）。默认环境 <code>node</code>（纯逻辑跑得最快，需要 DOM 的传桩对象）；正文提取用例在文件头用 <code>@vitest-environment jsdom</code> 单独切换到 <strong>jsdom</strong>。当前覆盖：</li>
+            <li><code>hooks/pdfBookReader.test.ts</code> —— <code>page-N</code> 严格解析（不能把 <code>fraction:…</code> 或 <code>page-0</code> 当页码）、翻页委派、<strong><code>next()</code> 必须等宿主 <code>goToPage</code> resolve 才 resolve</strong>（「每读一页结束一次会话」的回归护栏）</li>
+            <li><code>hooks/domBookReader.test.ts</code> —— <code>href</code> 恒定、滚动比例换算（含不足一屏与越界）、<code>navigateToLocation</code>、「订阅时只补发一次、后续靠显式 <code>emitRelocate</code>」</li>
+            <li><code>utils/readerLocation.test.ts</code> —— 键名隔离（不与 <code>foliate-*</code> 冲突）、JSON 损坏与 localStorage 不可用时的降级</li>
+            <li><code>utils/ttsHighlighter.test.ts</code>（<strong>jsdom</strong>）—— 正文提取。这是朗读链路的地基：<code>fullText</code> 决定分句、<code>charMap</code> 决定高亮落在哪个文本节点上，而它出错几乎都是<strong>静默</strong>的（不抛异常、不发警告，只是没声音或没底纹）。覆盖：TXT 形态（<code><pre></code> 内扁平 <code><span></code>）必然走到的回退分支 —— 含「以空行开头 / 首段 1 字符 / 首段是 1~4 位数字」三条<strong>整本丢正文</strong>的回归；Markdown 形态的块级分段与换行句边界；嵌套块不重复计入；非正文剔除（页码 / 脚注 / script / style / 纯数字段）；以及 <strong>charMap 偏移不变量</strong>（每条记录必须精确等于它在 <code>fullText</code> 里的那一段）</li>
+            <li>一个必须注意的桩：<strong>jsdom 不实现布局，<code>offsetParent</code> 恒为 <code>null</code></strong>，而 <code>isReadable</code> 正是用它判断「元素是否被渲染」。不补这个桩，每个段都会被判为不可读，于是「提取正确」与「整篇被丢掉」两种结果无法区分 —— 恰好让上面那三条回归测试失去意义。测试文件里用 <code>Object.defineProperty</code> 把已挂载元素的 <code>offsetParent</code> 补成非 null</li>
+            <li>另一条易错点：<code>isReadable</code> 会剔除文本不足 2 字符的段。用单字（<code><li>甲</li></code>）做夹具时整段会被合法丢掉，断言得到空串；更隐蔽的是断言「charMap 里每个节点都在正文根内」这类<strong>遍历式</strong>断言会<strong>空转通过</strong>。夹具一律用 2 字符以上并显式断言集合非空</li>
+            <li>仍未覆盖：<code>useAudiobookSession</code>（依赖 React 渲染）、<code>domTtsAdapter</code> / <code>TtsHighlighter</code> 的高亮注册（依赖 CSS Custom Highlight，jsdom 未实现）、三个 preview 组件。这些靠手测清单验证</li>
+            <li><strong>执行情况</strong>：本沙箱装不了 <code>jsdom</code>（<code>pnpm install</code> 会从头重装 node_modules，且 store 里没有该包），且沙箱内只有 darwin 原生绑定（<code>node_modules</code> 是在 macOS 上装的），缺 <code>@rollup/rollup-linux-arm64-gnu</code>，因此<strong>在这个环境里任何 vitest 都跑不起来</strong>（<code>packages/core</code> 的既有测试同样如此）。上述用例已在本地 <code>pnpm install && pnpm test</code> 全部通过；<code>vitest ^1.0.0</code> 与 <code>jsdom ^25.0.0</code> 两条 devDependency 已随该次 install 进入 <code>pnpm-lock.yaml</code></li>
+            <li><strong>AI 对话链路不存在真正的 Provider 抽象</strong> —— 适配是 <code>utils/aiStream.ts</code> 内的 <code>if/else</code> 硬编码（gemini / claude / OpenAI 兼容），<code>packages/core/src/utils/ai.ts</code> 只负责拉模型列表。CLAUDE.md 宣称的「Provider 热插拔」在对话链路上并不成立</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.3.5 · 🌐 国际化 i18n + 语音文件管理 + 剩余组件文本替换</h2>
+          <span class="changelog-date">2026年7月13日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>新增</h3>
+          <ul>
+            <li><strong>国际化 i18n 全面支持</strong> — 基于 i18next + react-i18next</li>
+            <li>i18next + react-i18next + LanguageDetector + http-backend</li>
+            <li>Telegram 风格扁平键 + 点号嵌套混合模式，英文后备语言</li>
+            <li>自动检测系统语言，localStorage 持久化偏好</li>
+            <li>zh-CN.json 累计 949 条翻译键，en.json 基础英文包</li>
+            <li><strong>语言设置页面</strong> — <code>LanguageSettings</code> 组件，支持语言切换、远程下载、已安装包管理</li>
+            <li><strong>聊天文件安装语言包</strong> — <code>LangInstallModal</code> 解析 <code>.json</code>/<code>.i18n</code> 文件后注入 i18next 并切换</li>
+            <li><strong>IPC 语言包管理</strong> — 5 个新通道：<code>i18n:fetch-pack-index</code> / <code>download-pack</code> / <code>list-installed</code> / <code>save-pack</code> / <code>delete-pack</code></li>
+          </ul>
+          <h3>修复</h3>
+          <ul>
+            <li><strong>App.tsx 变量冲突</strong> — 修复 <code>const { t } = useTranslation()</code> 与 <code>map((t) =></code> 迭代变量名冲突导致 TypeScript 类型错误</li>
+          </ul>
+          <h3>重构</h3>
+          <ul>
+            <li><strong>57/57 组件全面国际化</strong> — 全部组件导入 <code>useTranslation</code>，约 1600 处硬编码中文替换为 <code>t()</code> 调用</li>
+            <li><strong>基础设施新增</strong>：</li>
+            <li><code>main/handlers/i18n.ts</code> — 国际化 IPC 处理器</li>
+            <li><code>renderer/src/i18n/</code> — 国际化模块（i18n.ts + locales + components）</li>
+            <li><code>preload/index.ts</code> — 新增 <code>api.i18n.*</code> 桥接</li>
+          </ul>
+          <h3>新增</h3>
+          <ul>
+            <li><strong>@成员提及</strong> — 群聊输入框输入 <code>@</code> 触发成员列表自动补全（<code>InputBar</code>）</li>
+            <li>基于光标位置检测 <code>@</code> 后文本过滤房间成员（<code>username</code>/<code>displayName</code>）</li>
+            <li>选择成员后插入 <code>@username </code> 并正确定位光标</li>
+            <li>发送时从文本提取 <code>@username</code> 匹配成员 ID，写入 <code>MessageContent.mentionedUserIds</code></li>
+            <li>消息渲染时 <code>@username</code> 以 accent 蓝色高亮显示</li>
+            <li>被提及消息在聊天列表中行背景淡蓝色高亮</li>
+            <li>仅群组/超群触发，私聊/频道不显示，自己不会出现在列表</li>
+            <li>与 <code>/</code> Bot 命令补全互斥共存</li>
+            <li><strong>消息多选 / 批量操作</strong> — 右键菜单新增「选择」选项进入多选模式（<code>MessageBubble</code>）</li>
+            <li>选中消息显示圆形复选框 + 行背景高亮，再次点击取消选择</li>
+            <li>底部操作栏显示已选数量 + 「转发」「删除」「取消」按钮</li>
+            <li>批量转发：逐个转发到目标房间</li>
+            <li>批量删除：二次确认后逐条删除</li>
+            <li>多选模式与正常输入模式互斥</li>
+            <li><strong>会话内搜索</strong> — <code>ChatView</code> 顶部工具栏新增搜索按钮，展开搜索栏后调用后端 <code>searchMessages</code> 限定当前房间检索，支持上一条/下一条命中导航（<code>ChevronUp</code>/<code>ChevronDown</code>）、结果计数（<code>3/8</code>）、Enter 跳转、Esc 关闭，复用现有 <code>handleJumpToMessage</code> 滚动定位 + 高亮</li>
+            <li><strong>全局消息搜索</strong> — <code>ChatList</code> 搜索框输入时，除按房间名过滤外，并发调用 <code>searchMessages</code> 跨所有房间检索消息，结果按「聊天 / 消息」分组展示；点击消息结果切换到对应房间并经 <code>jump-to-message</code> 自定义事件定位到该消息</li>
+            <li><strong>跨房间跳转事件</strong> — 新增 <code>jump-to-message</code> window 事件，<code>ChatView</code> 监听后带重试（最多 10 次 × 200ms）等待消息加载完成再定位</li>
+            <li><strong>搜索越界提示</strong> — 命中消息不在已加载范围（更早历史）时，会话内搜索显示「需加载」提示，引导用户向上滚动</li>
+          </ul>
+          <h3>修复</h3>
+          <ul>
+            <li><strong>有声书自动翻章</strong> — <code>playLoop</code> 播完当前章节后自动调用 <code>reader.next()</code> 推进到下一章</li>
+            <li><strong>有声书高亮残留</strong> — adapter 新增 <code>markSentences</code> 预包裹句子，<code>highlightSentence</code> 仅切换颜色，消除 <code>surroundContents</code> 导致的 DOM 损坏</li>
+            <li><strong>有声书收起播放器后自动翻页失效</strong> — 新增 <code>autoScrollingRef</code> 区分引擎自动滚动与用户手动翻页，<code>relocate</code> handler 不再误关 <code>autoFollow</code></li>
+            <li><strong>有声书 prebuffer 超时导致～10句自动停</strong> — <code>PREBUFFER</code> 5→10，<code>CHUNK_TIMEOUT</code> 15s→60s，超时退出加日志明确原因</li>
+            <li><strong>有声书 <code>book_title</code> 未填充</strong> — Store 新增 <code>bookTitle</code> / <code>setBookTitle</code>，FoliatePreview 提取 EPUB 元数据后写入</li>
+            <li><strong>有声书 sleep timer 停止不优雅</strong> — 新增 <code>onExpire</code> 回调，倒计时归零时触发 <code>pauseReading</code> 而非仅 <code>setPlaying(false)</code></li>
+            <li><strong>有声书导出拼接 Broken</strong> — 新建 <code>audio:concat-wav</code> IPC handler 调用 <code>concatWavFiles</code> 真正拼接 WAV 文件，替换废弃的 <code>media.transcode</code> + <code>file.upload</code> concat-list 方案</li>
+          </ul>
+          <h3>重构</h3>
+          <ul>
+            <li><strong>统一 Modal 组件基座</strong> — <code>packages/ui-web</code> 新增 <code><Modal></code> 组件，统一遮罩/ESC/Portal/X 按钮/标题栏/footer</li>
+            <li>17 个 <code>*Modal.tsx</code> 全部迁移完成，净减约 440 行样板代码</li>
+            <li>最后 4 个手搓 Modal（<code>AddContact</code>/<code>FFmpegMissing</code>/<code>OSSNotices</code>/<code>Update</code>）一次性迁移</li>
+            <li><strong>拆分 <code>main/index.ts</code></strong> — 从 2917 行按域拆出 8 个 handler 文件（<code>handlers/{storage,fileops,media,network,ui,tts,audiobook,misc}.ts</code>）</li>
+            <li><code>index.ts</code> 仅保留编排逻辑（初始化 + 注册调用 + <code>createWindow</code>），精简至 333 行</li>
+            <li>约 85 个 IPC 通道名不变，renderer 端零感知</li>
+            <li>纯机械搬运，业务逻辑零改动</li>
+          </ul>
+          <h3>移除（死代码清理，净减约 1957 行）</h3>
+          <ul>
+            <li>删除 <code>SupertonicProvider.ts</code>（728 行）、<code>PiperCliProvider.ts</code>（293 行）—— 已注释禁用、从不实例化的 TTS Provider</li>
+            <li>删除 <code>AudiobookPlayer.tsx</code>（320 行）、<code>UserProfileModal.tsx</code>（482 行）、<code>hooks/useTTSPlayer.ts</code>（134 行）—— 全树无引用</li>
+            <li>清理 <code>main/index.ts</code> 中指向已删文件的注释 import / register 行；修正 TTS 引擎数日志「3 本地」→「1 本地」（与实际注册一致）</li>
+            <li>保留 <code>VoiceManager.ts</code>/<code>TTSManager.ts</code> 中 supertonic/piper 的模型下载配置（标记"待接入"，待确认是否永久移除）</li>
+          </ul>
+          <h3>测试</h3>
+          <ul>
+            <li><code>LocalProvider.test.ts</code> 新增 <code>searchMessages</code> 单元测试：跨房间/限定房间搜索、排除已删除消息、无命中返回空数组</li>
+          </ul>
+          <h3>新增</h3>
+          <ul>
+            <li><strong>移动端功能全面增强</strong> — 移动端功能从 Phase 1 推进至完整闭环</li>
+            <li>全面增强聊天功能 Phase 1-7：消息收发、群组/频道管理、成员管理完整实现</li>
+            <li>频道统计 / 文件管理 / 全局搜索 / Bot 管理</li>
+            <li>投票 / 评论区 / 定时消息列表 / 慢速模式 / 已读状态</li>
+            <li>UI redesign + Paper 主题迁移</li>
+            <li>UI 全面优化 + 文件夹管理 + 新建功能</li>
+            <li><strong>语言设置「系统跟随」选项</strong> — 语言选择新增跟随系统语言选项，自动检测系统语言并切换</li>
+            <li><strong>翻译质量批量提升</strong> — 修复 536 条劣质自动翻译，补充 688 条缺失翻译键，zh-CN 累计 1669 条</li>
+          </ul>
+          <h3>修复</h3>
+          <ul>
+            <li><strong>系统跟随模式语言检测</strong> — 修复系统跟随模式下语言检测优先级逻辑</li>
+            <li><strong>ESLint 清理</strong> — 修复 4 个错误和 27 个警告</li>
+            <li><strong>ssh-tunnel-manager.test.ts</strong> — 修复无效端口断言逻辑</li>
+            <li><strong>pnpm-lock 同步</strong> — 修复 pnpm-lock.yaml 与 apps/mobile/package.json 不同步 + pnpm 9.0.0 @electron/node-gyp 解析 bug</li>
+          </ul>
+          <h3>重构</h3>
+          <ul>
+            <li><strong>代码结构</strong> — 提升整体可读性和可维护性</li>
+          </ul>
+          <h3>改进</h3>
+          <ul>
+            <li><strong>语言偏好持久化</strong> — localStorage 检测优先级高于系统语言</li>
+            <li><strong>设置页国际化</strong> — 空状态 / loading 文本国际化</li>
+            <li><strong>ForwardModal</strong> — 类型修复 + emoji 替换</li>
+            <li><strong>语言图标</strong> — 改用 Globe lucide icon</li>
+            <li><strong>联系人模块</strong> — 翻译键补充</li>
+            <li><strong>设置页中文</strong> — 批量替换为 t() + 语法修复</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.3.3 · 🤖 AI 功能增强：火山引擎接入 + 多媒体显示 + 会话管理</h2>
+          <span class="changelog-date">2026年6月28日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>新增</h3>
+          <ul>
+            <li><strong>火山引擎（Coding Plan）接入</strong> — 新增 <code>volc</code> Provider，支持 <code>ark-code-latest</code> 接入点，OpenAI 兼容协议（<code>/api/coding/v1</code>）</li>
+            <li><strong>AI 回复图片显示</strong> — <code>ReactMarkdown</code> 支持 <code>img</code> 标签渲染，点击可全屏预览（复用 <code>ImageViewer</code>）；消息结构新增 <code>imageUrls</code> 字段</li>
+            <li><strong>AI 会话右键菜单</strong> — 支持<strong>重命名</strong>和<strong>删除会话</strong>操作，右键 → 菜单 → 确认对话框</li>
+          </ul>
+          <h3>修复</h3>
+          <ul>
+            <li><strong>AI 会话切换消息串扰</strong> — <code>AIChatView</code> 添加 <code>key={activeSessionId}</code>，切换会话时组件重建，state 自动重置</li>
+            <li><strong>Google Fonts 连接失败</strong> — 移除 <code>fonts.googleapis.com</code> 外部引用，降级到系统字体，移除 CSP 中相关声明</li>
+            <li><strong>AI 流式结束后内容消失</strong> — <code>onDone</code> 回调改为函数式更新 <code>setMessages(prev => ...)</code>，修复闭包陷阱</li>
+          </ul>
+          <h3>变更</h3>
+          <ul>
+            <li><code>AISessionMessage</code> / <code>AIMessage</code> 接口新增 <code>imageUrls?: string[]</code></li>
+            <li><code>AIManageModal</code> 火山引擎走手动输入接入点 ID 模式</li>
+          </ul>
+          <h3>变更</h3>
+          <ul>
+            <li><strong>彻底移除 epubjs 渲染引擎</strong>（-1598 行 EpubPreview + -243 行 epubIndexer），所有电子书格式（EPUB/MOBI/AZW/FB2/CBZ）统一使用 <code>@xincmm/foliate-js</code></li>
+            <li><strong>EPUB 全文搜索 (FTS5) 合并</strong>：EPUB 索引从独立的 <code>book_sections</code> 表迁移到通用 <code>file_sections</code> 表，使用统一 <code>file:index-file</code> IPC 通道</li>
+            <li><strong>移除 <code>epub:<em></code> IPC 通道</strong>：删除全部 11 个 <code>epub:</em></code> IPC 处理器及其在 preload + env.d.ts 中的声明，代码净减 466 行</li>
+            <li><strong>FoliatePreview 增强</strong>：新增 EPUB 文件类型检测、点击翻页区域（左 35%/右 35%）、键盘方向键翻页、有声书书签列表、导出对话框</li>
+            <li><strong>样式注入加固</strong>：<code>getReaderCSS</code> 全部可调属性加 <code>!important</code>，<code>body</code> 补充 <code>background-color</code>，防止 EPUB 自身样式表覆盖用户设置</li>
+            <li><strong>阅读位置持久化修复</strong>：取消 <code>fraction > 0.001</code> 恢复阈值，消除 <code>requestAnimationFrame</code> 级联触发 relocate，加 <code>Number.EPSILON</code> 补偿浮点偏差</li>
+          </ul>
+          <h3>新增</h3>
+          <ul>
+            <li><strong>foliate-js TTS 适配器</strong>：新建 <code>foliateTtsAdapter.ts</code>，用 <code>Intl.Segmenter</code>（同 foliate-js tts.js 方案）替代正则分句，用 <code>Range</code> 替代 <code><span></code> 包裹做 DOM 高亮</li>
+            <li><strong><code>setTTSAdapter</code> 模块级注册</strong>：<code>useAudiobook</code> 通过适配器优先的包装函数切换文本提取/高亮路径，<code>textSplitter.ts</code>/<code>domMarker.ts</code> 保留为 fallback</li>
+            <li><strong>有声书 auto-follow 重构</strong>：改用 <code>paginator.scrollToAnchor(range)</code> 实现页面跟随，解决 iframe 坐标系不可比导致的自动翻页失效</li>
+            <li><strong>TTS 引擎空检测</strong>：<code>startReading</code> 检查 <code>voiceEngineId</code>，未配置时输出警告并跳过；合成失败添加零时长 chunk 避免播放循环卡死</li>
+            <li><strong><code>seekTo</code> 自适应</strong>：拖动进度条时重新提取当前文档句子列表并 clamp 索引到有效范围</li>
+            <li><strong>有声书书签按钮</strong>：<code>AudiobookDrawer</code> 新增 <code>onShowBookmarkList</code> prop + 书签按钮</li>
+          </ul>
+          <h3>修复</h3>
+          <ul>
+            <li><strong>ESC 关闭整个阅读器</strong>：键盘事件处理器加 <code>{ capture: true }</code>，搜索打开时 Esc 仅关闭搜索面板</li>
+            <li><strong>搜索结果区域高度自适应</strong>：<code>ResizeObserver</code> 动态测量可用高度传递给 <code>VirtualSearchList</code></li>
+            <li><strong>主题切换背景色不跟随</strong>：<code>getReaderCSS</code> 在 <code>body</code> 上补充 <code>background-color: ... !important</code></li>
+            <li><strong>搜索 placeholder 显示错误</strong>：索引完成后显示「输入关键词搜索全书……」</li>
+            <li><strong>搜索输入文字颜色太淡</strong>：<code>#fff</code> → <code>#e0e0e0</code></li>
+          </ul>
+          <h3>移除</h3>
+          <ul>
+            <li>删除 <code>EpubPreview.tsx</code>（1598 行）</li>
+            <li>删除 <code>epubIndexer.ts</code>（243 行）</li>
+            <li>删除 <code>EpubjsReader</code> 类 / <code>EpubjsRendition</code> 接口</li>
+            <li>从 <code>package.json</code> 移除 <code>epubjs</code> 依赖</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.3.1 · 🔒 E2EE 二次方案：补齐+安全增强+部署策略</h2>
+          <span class="changelog-date">2026年6月27日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>新增</h3>
+          <ul>
+            <li><strong>部署级 E2EE 加密策略开关</strong>：支持 <code>none</code>（明文版）/ <code>optional</code>（自由选择）/ <code>mandatory</code>（强制加密）三种分发模式，通过构建时环境变量注入，死代码消除</li>
+            <li><strong>群聊 E2EE 全员检查接口</strong>：内置 WSS 服务端新增 <code>GET /api/group/check-e2ee?groupId=xxx</code> 端点</li>
+            <li><strong>THIRD_PARTY_LICENSE.md</strong>：第三方加密依赖合规声明文件</li>
+            <li><strong>E2EE 单元测试增强</strong>：新增 <code>e2ee-round2.test.ts</code>，覆盖策略模块/Sender Key/Double Ratchet/X3DH/InBandKeyExchange/会话管理/密钥销毁 38 项测试</li>
+          </ul>
+          <h3>修复</h3>
+          <ul>
+            <li><strong>InBandKeyExchange G1</strong>：接收方 SPK 私钥使用真实密钥对（修复随机私钥导致解密失败）</li>
+            <li><strong>InBandKeyExchange G2</strong>：nonce 从 payload 恢复而非全零数组</li>
+            <li><strong>LocalCryptoProvider G3/G4</strong>：实现 <code>encryptGroupMessage</code>/<code>decryptGroupMessage</code> 接入 Sender Key</li>
+            <li><strong>LocalCryptoProvider G5/G6</strong>：实现 <code>encryptMessage</code>/<code>decryptMessage</code> 接入 Double Ratchet + keyStore 持久化</li>
+          </ul>
+          <h3>安全增强</h3>
+          <ul>
+            <li><strong>sodium_memzero 密钥销毁 (G7)</strong>：<code>destroy()</code> 方法安全清零主密钥/身份私钥/Ratchet 会话密钥</li>
+            <li><strong>30 分钟会话超时 (G8)</strong>：InBandKeyExchange 无活动会话自动过期销毁</li>
+            <li><strong>重连自动清理 (G9)</strong>：WebSocket 重连后清理临时缓存，保留持久化 Ratchet 状态</li>
+          </ul>
+          <h3>改进</h3>
+          <ul>
+            <li><strong>解密失败 UI 统一 (G10)</strong>：MessageBubble 支持五态显示（encrypted/decrypt-failed/encrypted-locked/session-expired/plaintext）</li>
+            <li><strong>Bot 管理改为独立设置子页面</strong>：重构 BotManageModal 为 BotManageContent+BtManageModal 架构</li>
+            <li><strong>oss-notices.json 更新</strong>：移除 ffmpeg/onnx/sherpa 等运行时下载组件，1227 个包 22 种许可证</li>
+            <li><strong>Turbo 环境变量传递</strong>：<code>turbo.json</code> 新增 <code>globalPassThroughEnv</code> 配置</li>
+            <li><strong>清理旧版 release 构建产物</strong>（838MB，含 ffmpeg 二进制）</li>
+          </ul>
+          <h3>工程</h3>
+          <ul>
+            <li><strong>Vite 虚拟模块 <code>virtual:e2ee-policy</code></strong>：绕过 define 对跨包别名模块失效的问题</li>
+            <li><strong>TypeScript 严格模式零错误</strong>（所有包）</li>
+            <li><strong>手动功能测试</strong>：3 种策略 × UI 元素完整验证通过</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.3.0 · 📱 移动端 SDK 54 + 本地聊天闭环</h2>
+          <span class="changelog-date">2026年6月20日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>新增</h3>
+          <ul>
+            <li>移动端升级到 Expo SDK 54 / React Native 0.81 / Expo Router 6，兼容新版 Expo Go。</li>
+            <li>建立移动端本地聊天闭环：本地服务添加、群组/频道创建、聊天列表、聊天详情、消息发送、历史消息恢复均可用。</li>
+            <li>新增 <code>MobileProviderManager</code>，移动端 Phase 2A 仅加载 LocalProvider，避免 Expo Go + Hermes 启动阶段触发 <code>libsodium</code> WebAssembly 依赖。</li>
+            <li>移动端接入 <code>ExpoSqliteDatabaseProvider</code>，本地服务数据写入 expo-sqlite，冷启动后服务、房间与消息可恢复。</li>
+            <li>移动端聊天页补齐 Telegram 风格基础体验：群头像显示、群名称标题、消息方向、本地发送状态、自动滚动到底部、键盘避让与深浅色主题。</li>
+          </ul>
+          <h3>修复</h3>
+          <ul>
+            <li>修复 Expo 缺失 <code>assets/icon.png</code> / <code>adaptive-icon.png</code> 导致启动失败；移动端图标同步桌面端主图标。</li>
+            <li>修复 Expo Router v6 tab 路由识别问题，为 contacts / settings / more 补充布局文件。</li>
+            <li>修复 <code>libsodium-wrappers</code> 在 Hermes 下依赖 <code>import.meta</code> / <code>crypto.getRandomValues</code> / <code>WebAssembly</code> 导致的启动崩溃：移动端启动路径不再加载 E2EE/WASM 链。</li>
+            <li>修复本地发送消息沙漏长期不消失：用临时消息 ID 正确替换 Provider 返回的真实消息。</li>
+            <li>修复消息顺序倒置：消息按时间正序显示，新消息位于底部并自动滚动。</li>
+            <li>修复 iPhone 安全区问题：聊天列表顶部按钮避开状态栏，聊天输入栏避开虚拟键盘与 Home Indicator。</li>
+            <li>修复 Expo Go 中动态状态栏配置触发 <code>UIViewControllerBasedStatusBarAppearance</code> 原生错误；保留原生配置给后续 Dev Client / EAS Build 使用。</li>
+          </ul>
+          <h3>已知限制</h3>
+          <ul>
+            <li>移动端当前仅支持本地存储服务；WebSocket / Matrix 移动端接入将在后续版本迁移。</li>
+            <li>Expo Go + Hermes 不支持 libsodium WebAssembly，移动端 E2EE 暂在原生 Dev Client 阶段启用。</li>
+            <li>移动端超群/话题 UI 暂未实现，创建入口暂只提供群组与频道。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">未发布 · Matrix 连接稳定性</h2>
+          <span class="changelog-date">2026年6月19日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>修复</h3>
+          <ul>
+            <li>MatrixProvider 不再在 Homeserver URL 缺失时静默回退到 <code>https://matrix.org</code>，避免离线或 DNS 不可达环境启动即请求公共服务器。</li>
+            <li>Access Token 校验仅在明确认证失败时触发密码重登；DNS/网络失败会直接提示检查 Homeserver 地址、DNS/网络或 CORS 配置。</li>
+            <li>启动时跳过非活跃 Matrix 服务器的自动连接，减少历史配置导致的无意义外网请求。</li>
+            <li>Matrix 添加服务器表单恢复默认 <code>https://matrix.org</code>，同时连接层保留网络/DNS/CORS 错误的明确提示。</li>
+            <li>Matrix 实时事件增加连接去重、初始同步历史事件过滤和 eventId 去重，避免启动同步时同一消息重复进入 UI。</li>
+            <li>Matrix 创建会话调整为房间级 E2EE 模式：支持普通对话、普通房间、加密对话、加密房间；加密会话创建时写入 <code>m.room.encryption</code>，消息继续由 matrix-js-sdk 自动加解密。</li>
+            <li>Matrix E2EE 设备身份修复：优先使用 <code>/account/whoami</code> 返回的 token 绑定 <code>device_id</code>，不再通过 <code>/devices</code> 猜测设备，避免 <code>/keys/upload</code> 出现 device_id mismatch。</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.2.6 · 🔒 端到端加密 Phase 3-5：全协议 E2EE + 密钥管理</h2>
+          <span class="changelog-date">2026年6月18日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>三种 Provider 模式 E2EE 全部实现</h3>
+          <p><strong>WebSocket 模式（X3DH + Double Ratchet）：</strong></p>
+          <ul>
+            <li>InBandKeyExchange：三步握手协议（key_request→key_bundle→pre_key_message）</li>
+            <li>双路径：带内协商（PASSIVE, 2 RTT）+ 服务端 Pre-Key 辅助（ASSISTED, 1 RTT）</li>
+            <li>WS 服务端新增 wss_pre_keys 表 + HTTP Pre-Key 端点 + 6 种 e2ee.\* 透传</li>
+            <li>群聊 Sender Key 加密（sendEncryptedGroupMessage）+ 成员变更自动轮换</li>
+            <li>降级 UI：ChatView E2EE 状态横幅（🔒/⚠️ 三种配色 + 服务端能力标签）</li>
+            <li>CSP 修复：wasm-unsafe-eval 支持 libsodium WebAssembly</li>
+          </ul>
+          <p><strong>Matrix 模式（Olm + Megolm）：</strong></p>
+          <ul>
+            <li>MatrixProvider 集成 initRustCrypto（matrix-sdk-crypto-wasm）</li>
+            <li>MatrixCryptoProvider 适配器：bindCryptoApi + exportRoomKeys/importRoomKeys</li>
+            <li>Web Crypto SHA-256 派生 storageKey + deviceId 交给 SDK 自动管理</li>
+            <li>修复 Buffer is not defined / device_id mismatch 等渲染进程兼容问题</li>
+          </ul>
+          <h3>E2EE 状态管理重构</h3>
+          <ul>
+            <li>按 serverId 独立隔离：不同协议 E2EE 配置互不干扰</li>
+            <li>settings 页全面重构：Toggle 开关 + Modal 弹窗 + 多服务器列表</li>
+            <li>持久化：zustand persist（enabled mark per-server → localStorage）</li>
+            <li>旧数据自动迁移：v0 {enabled:true} → v1 {servers:{}}</li>
+          </ul>
+          <h3>密钥备份与恢复</h3>
+          <ul>
+            <li>导出密钥备份：口令验证 → cryptoProvider.exportState → JSON Blob 下载</li>
+            <li>恢复密钥备份：选择 .json 文件 + 口令 → cryptoProvider.importState</li>
+            <li>聊天记录导出：verifyE2EEPassphrase + exportData → 明文 JSON 下载</li>
+          </ul>
+          <h3>Phase 5 其他完成项</h3>
+          <ul>
+            <li>5.4 群聊 Sender Keys 完善：rotate/distribute/getOrCreate + 缓存</li>
+            <li>5.6 通知隐私：隐藏加密消息通知内容开关（localStorage 持久化）</li>
+            <li>5.7 密文搜索优化：全量读取→逐条解密→内存匹配</li>
+            <li>5.8 离线队列检查：关闭 E2EE 前检查 encrypted=1 的待发消息</li>
+            <li>5.10 协议升级框架：E2EE_VERSION_TABLE + canDecrypt + getDecryptVersionLabel</li>
+          </ul>
+          <h3>🔬 验证状态</h3>
+          <ul>
+            <li>TypeScript 严格模式类型检查（6 包）：零错误</li>
+            <li>ESLint：零错误（仅项目级 any 类型 warning）</li>
+            <li>X3DH 4-DH 协商：DH1-DH4 全部匹配</li>
+            <li>Double Ratchet 100 条消息往返：全部正确解密</li>
+            <li>BLAKE2b KDF 单向性（前向安全）：通过</li>
+          </ul>
+          <p>#### 涉及文件</p>
+          <p>| 文件                                                            | 说明                              |</p>
+          <p>| --------------------------------------------------------------- | --------------------------------- |</p>
+          <p>| <code>packages/core/src/crypto/InBandKeyExchange.ts</code>                 | <strong>新建</strong> — Phase 3a 带内密钥交换  |</p>
+          <p>| <code>packages/core/src/crypto/MatrixCryptoProvider.ts</code>              | <strong>新建</strong> — Phase 4 Matrix 适配器  |</p>
+          <p>| <code>packages/core/src/providers/WebSocketProvider.ts</code>              | <strong>修改</strong> — Phase 3 完整 E2EE 集成 |</p>
+          <p>| <code>packages/core/src/providers/MatrixProvider.ts</code>                 | <strong>修改</strong> — Phase 4 initRustCrypto |</p>
+          <p>| <code>apps/desktop/src/main/ws-server.ts</code>                            | <strong>修改</strong> — Phase 3b Pre-Key 端点  |</p>
+          <p>| <code>apps/desktop/src/renderer/src/store/useE2EEStore.ts</code>           | <strong>新建</strong> — E2EE 状态管理          |</p>
+          <p>| <code>apps/desktop/src/renderer/src/store/useE2EEState.ts</code>           | <strong>新建</strong> — 房间级 E2EE 状态 hook  |</p>
+          <p>| <code>apps/desktop/src/renderer/src/components/E2eeSettingsView.tsx</code> | <strong>新建</strong> — 隐私与安全设置页       |</p>
+          <p>| <code>apps/desktop/src/renderer/src/components/ChatView.tsx</code>         | <strong>修改</strong> — E2EE 状态横幅          |</p>
+          <p>| <code>apps/desktop/src/renderer/src/components/MessageBubble.tsx</code>    | <strong>修改</strong> — E2EE 加密图标          |</p>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.2.5 · 🔒 端到端加密 Phase 2 完整交付：UI 层 + 附件加密 + Bot 豁免</h2>
+          <span class="changelog-date">2026年6月17日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>🖥️ UI 层 E2EE 状态管理</h3>
+          <p><strong>useE2EEStore（新建）：</strong></p>
+          <ul>
+            <li>Zustand store 管理 E2EE 启用/禁用/口令状态，桥接 LocalProvider E2EE 方法到渲染层</li>
+            <li>动态导入 <code>useServerStore</code> 避免循环依赖</li>
+            <li>提供 <code>enableE2EE</code> / <code>disableE2EE</code> / <code>changePassphrase</code> / <code>verifyPassphrase</code> / <code>refreshStatus</code> 方法</li>
+          </ul>
+          <p><strong>E2eeSettingsView（新建）— 设置 → 隐私与安全：</strong></p>
+          <ul>
+            <li>当前状态卡片：🛡 已启用 / ⚪ 未启用 + 身份指纹显示</li>
+            <li>启用端到端加密：口令输入 + 👁 显示切换 + 强度指示器（6 项检测、4 级颜色条）</li>
+            <li>关闭确认弹窗：警告新消息将明文 + 历史密文不自动解密</li>
+            <li>更改口令：旧口令验证 + 新口令强度检测 + 不触发消息重加密提示</li>
+            <li>安全说明区域：加密算法说明 + WS/Matrix 模式待开发提示</li>
+          </ul>
+          <p><strong>MessageBubble E2EE 加密图标：</strong></p>
+          <ul>
+            <li>新增 <code>E2EEIndicator</code> 组件：根据 <code>msg.__e2eeStatus</code> 渲染图标</li>
+            <li><code>encrypted</code> → 🔒（端到端加密）</li>
+            <li><code>decrypt-failed</code> → ❌（解密失败）</li>
+            <li><code>encrypted-locked</code> → 🔒（锁定，需输入口令）</li>
+            <li><code>plaintext</code> → 不显示</li>
+            <li>集成在时间戳区域，紧跟置顶图标 📌</li>
+          </ul>
+          <h3>📎 附件文件级加密</h3>
+          <ul>
+            <li><code>LocalProvider.uploadEncryptedFile()</code> 私有方法：E2EE 启用时自动加密上传</li>
+            <li>加密后文件名：<code>UUID.enc</code>（无意义随机名）</li>
+            <li>MIME 类型：统一隐藏为 <code>application/octet-stream</code></li>
+            <li>真实文件名/MIME/nonce 通过 <code>UploadResult._realFileName/_realMimeType/_encNonce</code> 扩展字段保存</li>
+            <li><code>uploadFile</code> 自动检测 E2EE 状态并分流加密/明文路径</li>
+          </ul>
+          <h3>🤖 Bot/AI 房间 E2EE 豁免</h3>
+          <ul>
+            <li><code>createRoom</code> 中 <code>botConfig</code> 或 <code>type === 'bot'</code> 时自动 <code>e2eeExemptRoomIds.add(roomId)</code></li>
+            <li>控制台输出日志提示：<code>[LocalProvider] 房间 xxx 已排除 E2EE（Bot/AI 房间）</code></li>
+          </ul>
+          <h3>📋 设计文档</h3>
+          <ul>
+            <li>E2EE 方案文档更新至 v1.3：附录 D Phase 2 标记全部完成，P0 清零</li>
+            <li>PRD.md 同步更新：版本号 0.2.4，E2EE 状态描述更新</li>
+          </ul>
+          <p>#### 涉及文件（新建 2 个，修改 5 个）</p>
+          <p>| 文件                                                            | 说明                                                    |</p>
+          <p>| --------------------------------------------------------------- | ------------------------------------------------------- |</p>
+          <p>| <code>apps/desktop/src/renderer/src/store/useE2EEStore.ts</code>           | <strong>新建</strong> — E2EE 状态管理 store                          |</p>
+          <p>| <code>apps/desktop/src/renderer/src/components/E2eeSettingsView.tsx</code> | <strong>新建</strong> — 隐私与安全设置页                             |</p>
+          <p>| <code>apps/desktop/src/renderer/src/App.tsx</code>                         | <strong>修改</strong> — 集成隐私页 + Shield 入口 + E2EE 状态自动刷新 |</p>
+          <p>| <code>apps/desktop/src/renderer/src/components/MessageBubble.tsx</code>    | <strong>修改</strong> — E2EEIndicator 组件                           |</p>
+          <p>| <code>packages/core/src/providers/LocalProvider.ts</code>                  | <strong>修改</strong> — 附件加密 + Bot 豁免                          |</p>
+          <p>| <code>packages/core/src/providers/IServerProvider.ts</code>                | <strong>修改</strong> — UploadResult 扩展字段                        |</p>
+          <p>| <code>docs/requirements/unobox-端到端加密方案.md</code>                    | <strong>修改</strong> — v1.3 附录 D 更新                             |</p>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.2.4 · 端到端加密 Phase 1-2：基础库 + 本地模式加密存储</h2>
+          <span class="changelog-date">2026年6月16日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>🔒 加密基础库（packages/core/src/crypto/，~3,200 行）</h3>
+          <p><strong>完整实现 Signal Protocol 核心：</strong></p>
+          <ul>
+            <li><code>identity.ts</code>：Ed25519 身份密钥生成、X25519 预密钥、Ed25519↔X25519 转换、设备 ID 派生</li>
+            <li><code>x3dh.ts</code>：X3DH 异步密钥协商（4-DH，含 Ed25519→X25519 转换修正）</li>
+            <li><code>doubleRatchet.ts</code>：Double Ratchet 会话加密（对称棘轮 + DH 棘轮），前向安全</li>
+            <li><code>senderKeys.ts</code>：群聊 Sender Keys 加密/解密/轮换</li>
+            <li><code>sessionManager.ts</code>：会话生命周期管理（序列化/反序列化）</li>
+            <li><code>messageEncrypt.ts</code>：本地加密/解密（BLAKE2b KDF）、附件加解密、消息密钥派生</li>
+            <li><strong>4 个单元测试文件</strong>（identity / x3dh / doubleRatchet / messageEncrypt）</li>
+          </ul>
+          <p><strong>加密原语选型：</strong> libsodium-wrappers@^0.8.4（X25519 / Ed25519 / XSalsa20-Poly1305 / BLAKE2b）</p>
+          <h3>🛡️ 本地模式加密存储</h3>
+          <p><strong>LocalProvider 集成加密路径：</strong></p>
+          <ul>
+            <li><code>LocalCryptoProvider.ts</code>：ICryptoProvider 实现，口令→主密钥→消息密钥完整链路</li>
+            <li><code>SQLiteKeyStore.ts</code>：IKeyStore 实现（e2ee_keys / e2ee_pre_keys / e2ee_sessions / e2ee_sender_keys 四表）</li>
+            <li>数据库 migration：<code>messages</code> 表新增 <code>encrypted</code> / <code>e2ee_version</code> 列</li>
+            <li><code>sendMessage</code> 加密分支：E2EE 启用时自动加密，Bot/AI 房间自动排除</li>
+            <li><code>getMessages</code> 解密分支：逐条检查 encrypted 标志，明文直返 / 密文解密</li>
+            <li>口令管理：启用 / 关闭 / 更改口令 / 验证口令（口令变更不触发消息重加密）</li>
+          </ul>
+          <p><strong>IServerProvider E2EE 扩展：</strong> 新增 <code>supportsE2EE</code> / <code>e2eeEnabled</code> / <code>e2eeExemptRoomIds</code> 等 12 项 E2EE 属性</p>
+          <h3>📋 设计文档</h3>
+          <ul>
+            <li>端到端加密方案文档更新至 v1.1：新增附录 C 实施记录（数据库 Schema、技术差异、验证状态）</li>
+            <li>PRD.md 同步更新：竞品对标表、短板表、现状表、实施阶段状态</li>
+          </ul>
+          <h3>🔬 验证状态</h3>
+          <ul>
+            <li>TypeScript 严格模式类型检查（6 包）：零错误</li>
+            <li>ESLint 新增模块：零警告</li>
+            <li>X3DH 4-DH 协商：DH1-DH4 全部匹配</li>
+            <li>Double Ratchet 100 条消息往返：全部正确解密</li>
+            <li>BLAKE2b KDF 单向性（前向安全）：通过</li>
+          </ul>
+          <p>#### 涉及文件（新增 16 个，修改 7 个）</p>
+          <p>| 文件                                              | 说明                                   |</p>
+          <p>| ------------------------------------------------- | -------------------------------------- |</p>
+          <p>| <code>packages/core/src/crypto/identity.ts</code>            | <strong>新建</strong> — 身份密钥生成与管理          |</p>
+          <p>| <code>packages/core/src/crypto/x3dh.ts</code>                | <strong>新建</strong> — X3DH 密钥协商               |</p>
+          <p>| <code>packages/core/src/crypto/doubleRatchet.ts</code>       | <strong>新建</strong> — Double Ratchet 会话加密     |</p>
+          <p>| <code>packages/core/src/crypto/senderKeys.ts</code>          | <strong>新建</strong> — Sender Keys 群组加密        |</p>
+          <p>| <code>packages/core/src/crypto/sessionManager.ts</code>      | <strong>新建</strong> — 会话生命周期管理            |</p>
+          <p>| <code>packages/core/src/crypto/messageEncrypt.ts</code>      | <strong>新建</strong> — 消息加密/解密封装           |</p>
+          <p>| <code>packages/core/src/crypto/LocalCryptoProvider.ts</code> | <strong>新建</strong> — 本地加密提供者              |</p>
+          <p>| <code>packages/core/src/crypto/SQLiteKeyStore.ts</code>      | <strong>新建</strong> — SQLite 密钥存储             |</p>
+          <p>| <code>packages/core/src/crypto/__tests__/</code>             | <strong>新建</strong> — 4 个单元测试                |</p>
+          <p>| <code>packages/core/src/providers/LocalProvider.ts</code>    | <strong>修改</strong> — 集成加密路径 + DB migration |</p>
+          <p>| <code>packages/core/src/providers/IServerProvider.ts</code>  | <strong>修改</strong> — E2EE 接口扩展               |</p>
+          <p>| <code>docs/requirements/unobox-端到端加密方案.md</code>      | <strong>修改</strong> — 更新至 v1.1                 |</p>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.2.3 · 官网增强：赞赏页优化 + 交流社区页 + 品牌导航栏</h2>
+          <span class="changelog-date">2026年6月16日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>赞赏页（donate.html）优化</h3>
+          <p><strong>新增三段式金额提示，提升支付转化率：</strong></p>
+          <ul>
+            <li>二维码上方增加静默金额参考：☕ 一杯咖啡 ¥6 · 🍱 一顿快餐 ¥25 · 🎁 给个大的 ¥88</li>
+            <li>附提示文案："扫码后按心意输入任意金额即可 ❤️"</li>
+            <li>纯视觉参考，无选中/输入交互，不干扰用户体验</li>
+            <li>法律声明第 3 点同步更新：从"不设金额引导"改为"金额仅为温馨参考"</li>
+            <li>设计依据：中国大陆个人开发者合规指南——预设金额 + 双码并行 + 不承诺回报</li>
+          </ul>
+          <h3>交流社区页（community.html）</h3>
+          <p><strong>新建独立页面，集中展示 Telegram 官方群组和频道：</strong></p>
+          <ul>
+            <li>群组卡片：二维码 + "加入群组"按钮 → <code>t.me/+3KH9Cn8-yIQ1ZDI1</code></li>
+            <li>频道卡片：二维码 + "关注频道"按钮 → <code>t.me/+KN45JemRvb5kMmNl</code></li>
+            <li>统一 "交流" 导航入口，替换原来导航栏独立的两个外部链接</li>
+            <li>新增二维码图片资源：<code>web/assets/telegram_group_unobox_qr.jpeg</code> / <code>web/assets/telegram_channel_unobox_qr.jpeg</code></li>
+          </ul>
+          <h3>品牌导航栏</h3>
+          <ul>
+            <li>导航栏品牌图标：用 <code>web/icon/icon.png</code> 替换 💬 emoji（36×36px）</li>
+            <li>品牌文字改为大写 <code>UNOBOX</code>，保留原有蓝白渐变色样式</li>
+          </ul>
+          <p>#### 涉及文件</p>
+          <p>| 文件                                               | 说明                                 |</p>
+          <p>| -------------------------------------------------- | ------------------------------------ |</p>
+          <p>| <code>web/donate.html</code>                                  | 三段式金额提示 + 法律声明更新        |</p>
+          <p>| <code>web/community.html</code>                               | <strong>新建</strong> — 交流社区独立页            |</p>
+          <p>| <code>web/assets/telegram_group_unobox_qr.jpeg</code>         | <strong>新建</strong> — Telegram 群组二维码       |</p>
+          <p>| <code>web/assets/telegram_channel_unobox_qr.jpeg</code>       | <strong>新建</strong> — Telegram 频道二维码       |</p>
+          <p>| <code>web/index.html</code> / <code>usage.html</code> / <code>changelog.html</code> | 导航栏更新：图标 + 大写 + "交流"入口 |</p>
+          <p>| <code>web/assets/style.css</code>                             | 新增 <code>.navbar-icon</code> 规则             |</p>
+          <h3>贴纸系统</h3>
+          <p><strong>完整的贴纸功能：内置贴纸包 + 选择器 + 消息管线。</strong></p>
+          <ul>
+            <li><code>MessageContent</code> 接口新增 <code>stickerId</code> / <code>stickerPackId</code> / <code>stickerEmoji</code> 三个贴纸专用字段</li>
+            <li><strong>内置 2 套贴纸包、14 款手绘 SVG 贴纸</strong>（表情心情 x12 + 可爱动物 x8，跨包复用）</li>
+            <li><code>StickerPicker.tsx</code> — 贴纸选择面板：4 列网格、包切换标签（表情心情 / 可爱动物）、hover 高亮、点击即发</li>
+            <li><code>MessageBubble.tsx</code> — 贴纸渲染：200px 大尺寸、无气泡背景浮动显示（Telegram 风格）、带头像 + 时间戳 + 表情反应</li>
+            <li><code>InputBar.tsx</code> — ⭐ 贴纸按钮（<code>Sticker</code> lucide 图标），紧邻 Emoji 按钮，点击弹出选择器</li>
+            <li><code>ChatView.tsx</code> — <code>handleSendSticker</code> 完整管线：dataURI→Blob→uploadFile→sendMessage</li>
+          </ul>
+          <h3>定时消息调度器</h3>
+          <p><strong>主进程持久化调度器，确保持久化保证。</strong></p>
+          <ul>
+            <li><code>scheduler.ts</code> — <code>MessageScheduler</code> 单例：每 15 秒轮询 <code>messages</code> + <code>wss_messages</code> 表，到期消息自动清除 <code>scheduled_at</code> 并更新 <code>created_at</code>/<code>sent_at</code>/房间 <code>last_message</code>，通过 IPC <code>scheduler:messages-dispatched</code> 通知渲染端刷新</li>
+            <li><code>ScheduledMessagesModal.tsx</code> — 定时消息管理面板：查看当前房间待发送列表、格式化倒计时（天/小时/分钟/秒）、单条取消、自动刷新</li>
+            <li>集成到 <code>ChatView.tsx</code> 更多菜单（<code>Clock</code> 图标入口）+ IPC 监听自动刷新消息列表</li>
+            <li><code>preload/index.ts</code> 新增 <code>api.scheduler</code> 接口（<code>getStatus</code>/<code>start</code>/<code>stop</code>/<code>pollNow</code>/<code>onMessagesDispatched</code>）</li>
+            <li><code>useChatStore.ts</code> — <code>scheduleMessage</code>/<code>cancelScheduledMessage</code>/<code>loadScheduledMessages</code> 正确维护 <code>scheduledMessages</code> store 状态</li>
+            <li>应用退出时自动停止调度器；启动时自动开始轮询</li>
+            <li>与渲染端 <code>armTimer</code>（<code>setTimeout</code>）互补：近程精确 + 持久化兜底，双重保障</li>
+          </ul>
+          <p>#### 涉及文件</p>
+          <p>| 文件                                                                  | 说明                               |</p>
+          <p>| --------------------------------------------------------------------- | ---------------------------------- |</p>
+          <p>| <code>packages/core/src/providers/IServerProvider.ts</code>                      | <code>MessageContent</code> 新增贴纸字段      |</p>
+          <p>| <code>apps/desktop/src/renderer/src/stickers/stickerData.ts</code>               | <strong>新建</strong> — 2 套贴纸包、14 款 SVG   |</p>
+          <p>| <code>apps/desktop/src/renderer/src/components/StickerPicker.tsx</code>          | <strong>新建</strong> — 贴纸选择面板            |</p>
+          <p>| <code>apps/desktop/src/renderer/src/components/MessageBubble.tsx</code>          | 贴纸渲染（200px 无气泡浮动）       |</p>
+          <p>| <code>apps/desktop/src/renderer/src/components/ChatList.tsx</code>               | 贴纸预览带 emoji 标识              |</p>
+          <p>| <code>apps/desktop/src/renderer/src/components/InputBar.tsx</code>               | 贴纸按钮 + 选择器集成              |</p>
+          <p>| <code>apps/desktop/src/renderer/src/components/ChatView.tsx</code>               | <code>handleSendSticker</code> 发送管线       |</p>
+          <p>| <code>apps/desktop/src/main/scheduler.ts</code>                                  | <strong>新建</strong> — <code>MessageScheduler</code> 单例 |</p>
+          <p>| <code>apps/desktop/src/renderer/src/components/ScheduledMessagesModal.tsx</code> | <strong>新建</strong> — 定时消息管理面板        |</p>
+          <p>| <code>apps/desktop/src/main/index.ts</code>                                      | 调度器 IPC + 启停                  |</p>
+          <p>| <code>apps/desktop/src/preload/index.ts</code>                                   | <code>api.scheduler</code> 接口               |</p>
+          <p>| <code>apps/desktop/src/renderer/src/env.d.ts</code>                              | <code>scheduler</code> 类型声明               |</p>
+          <p>| <code>apps/desktop/src/renderer/src/store/useChatStore.ts</code>                 | store 状态管理                     |</p>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.2.1 · 反馈问题 + 赞赏支持独立菜单</h2>
+          <span class="changelog-date">2026年6月13日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>反馈问题</h3>
+          <p><strong>设置界面新增反馈问题入口：</strong></p>
+          <ul>
+            <li>设置主菜单新增"反馈问题"入口（Bug 图标）</li>
+            <li>支持三种反馈类型：Bug 报告 / 功能建议 / 使用体验（三选一卡片切换）</li>
+            <li>表单字段：标题（必填）、详细描述（必填）、联系邮箱（选填）</li>
+            <li>自动附带环境信息：应用版本、操作系统、架构、Electron/Node.js 版本</li>
+            <li>通过 GitHub Issues REST API 提交，自动标记 <code>bug</code> / <code>enhancement</code> / <code>feedback</code> label</li>
+            <li>Token 通过 <code>.env.local</code> 运行时读取（<code>GITHUB_FEEDBACK_TOKEN</code>），不提交到代码仓库</li>
+            <li>成功后展示 Issue 链接，失败展示详细错误原因（含调试路径信息）</li>
+          </ul>
+          <p>#### 涉及文件</p>
+          <p>| 文件                                    | 说明                                                 |</p>
+          <p>| --------------------------------------- | ---------------------------------------------------- |</p>
+          <p>| <code>apps/desktop/src/renderer/src/App.tsx</code> | <code>"feedback"</code> 子页面（表单 UI + 提交逻辑）            |</p>
+          <p>| <code>apps/desktop/src/preload/index.ts</code>     | <code>api.feedback.submit()</code> IPC 桥接                     |</p>
+          <p>| <code>apps/desktop/src/main/index.ts</code>        | <code>feedback:submit</code> handler（Token 读取 + GitHub API） |</p>
+          <p>| <code>.env.example</code>                          | <code>GITHUB_FEEDBACK_TOKEN</code> 配置模板                     |</p>
+          <h3>赞赏支持菜单提升</h3>
+          <ul>
+            <li>☕ 赞赏支持从"关于与自动更新"子页面提升为设置主菜单独立项</li>
+            <li>使用 <code>Coffee</code> 图标（橙色），点击直接打开外部捐赠页面</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.2.0 · TTS 语音合成 + EPUB 有声书 + 音频导出 + 播放器 UI 重设计</h2>
+          <span class="changelog-date">2026年6月7日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>TTS 语音合成增强</h3>
+          <p><strong>偏好持久化重构：</strong></p>
+          <ul>
+            <li><code>useTTSStore</code> 全面重构：引擎/语音/语速/音调偏好 100ms 防抖自动保存到 SQLite <code>tts_preferences</code> 表</li>
+            <li><code>beforeunload</code> 事件同步 flush 兜底，确保刷新/重启不丢配置</li>
+            <li>全局偏好与有声书独立偏好解耦（<code>speed</code> 用于合成，<code>playbackRate</code> 用于播控）</li>
+          </ul>
+          <p><strong>内联 TTS 播放器（<code>InlineTTSPlayer</code>）：</strong></p>
+          <ul>
+            <li>文本消息气泡内嵌 TTS 播放按钮（Volume2 图标）</li>
+            <li>合成中显示脉冲动画，播放中显示暂停图标 + 时间进度</li>
+            <li>远程引擎隐私声明首次确认后缓存</li>
+          </ul>
+          <p><strong>合成缓存（<code>TTSCache</code>）：</strong></p>
+          <ul>
+            <li><code>engineId + voiceId + speed + SHA256(text)</code> 为 key，写入 <code>tts-cache/</code> 目录</li>
+            <li>重复文本请求直接复用缓存文件，省 API 调用/本地计算</li>
+            <li>索引文件 <code>.index.json</code>，<code>getStats()</code> 查询缓存统计，<code>clearAll()</code> 一键清空</li>
+          </ul>
+          <p><strong>语音列表改进：</strong></p>
+          <ul>
+            <li>引擎动态语音列表（移除 TTSManager 中下载状态过滤）</li>
+            <li>Sherpa-ONNX Kokoro 模型配置修正（根据官方文档）</li>
+            <li>语音模型 tar.bz2 压缩包下载 + 完整日志</li>
+          </ul>
+          <p><strong>修复：</strong></p>
+          <ul>
+            <li>TTS 设置页文字颜色统一为 CSS 变量适配主题</li>
+            <li>推荐徽章颜色 #4caf50 → #81c784 提亮</li>
+            <li>语音模型下载断点续传兼容性</li>
+          </ul>
+          <h3>有声书播放器 UI 重设计</h3>
+          <p><strong>浮动耳机按钮（<code>AudiobookFloatingBtn</code>）：</strong></p>
+          <ul>
+            <li>EPUB 内容区右下角 48×48px 圆形蓝色悬浮按钮，白色耳机图标</li>
+            <li>20 秒无点击自动折叠：缩小 1/2、透明度 65%，折叠至右侧边缘呈半圆贴边</li>
+            <li>0.5s cubic-bezier 过渡动画（transform + opacity），<code>transform-origin: right center</code></li>
+            <li>点击半圆按钮恢复完整态，重新开始倒计时</li>
+            <li>有声书激活后自动隐藏</li>
+          </ul>
+          <p><strong>底部抽屉播放器（<code>AudiobookDrawer</code>，替代旧 <code>AudiobookPlayer</code>）：</strong></p>
+          <ul>
+            <li>从底部滑入 35vh（最大 420px），<code>translateY</code> 0.35s 过渡动画</li>
+            <li>遮罩层点击隐藏抽屉，不改变播放状态</li>
+            <li>停止按钮暂停 + 隐藏，不销毁会话</li>
+            <li>再点击浮动按钮恢复抽屉 + 继续播放（<code>resumeReading</code>）</li>
+          </ul>
+          <p><strong>播控调速（playbackRate）：</strong></p>
+          <ul>
+            <li>合成 speed 与播控 playbackRate 彻底解耦</li>
+            <li>合成时使用全局 TTS 设置的 speed（音质由引擎保证）</li>
+            <li>播放时 <code>audio.playbackRate</code> 由抽屉 UI 独立控制（0.5x-3.0x）</li>
+            <li>playbackRate 持久化到 <code>audiobook_progress.playback_rate</code></li>
+            <li>调整语速时 <code>audio.playbackRate</code> 即时生效（store subscribe 同步）</li>
+          </ul>
+          <p><strong>字幕横滚动画：</strong></p>
+          <ul>
+            <li>当前句文本在抽屉内 90% 宽容器中显示</li>
+            <li>超宽时按句子播放时长匀速左移（~4 字/秒估算）</li>
+            <li>CSS <code>@keyframes audiobook-subtitle-scroll</code>，<code>forwards</code> 停在末尾</li>
+            <li><code>key={globalIndex}</code> 确保换句时动画重置</li>
+          </ul>
+          <p><strong>全局 TTS 偏好兜底：</strong></p>
+          <ul>
+            <li>开始朗读时自动从 <code>useTTSStore</code> 同步引擎/语音/语速/音调到有声书 Store</li>
+            <li>已有进度时恢复进度中的配置（优先级更高）</li>
+            <li>移除抽屉内音调控件（pitch 仅影响合成，不在播放时调整）</li>
+          </ul>
+          <p><strong>修复：</strong></p>
+          <ul>
+            <li><code>textSplitter.ts</code>：CSS 选择器 <code>[epub|type]</code> 修复为 <code>[epub\\:type]</code> + <code>matches()</code> try-catch 防御</li>
+            <li>工具栏耳机按钮已移除（入口统一为浮动按钮）</li>
+          </ul>
+          <h3>工程</h3>
+          <ul>
+            <li>Pre-commit/pre-push lint-staged hook 配置</li>
+          </ul>
+          <h3>代码统计（相对 v0.1.1）</h3>
+          <p>| 类别                               | 新增/修改文件 |    代码量     |</p>
+          <p>| ---------------------------------- | :-----------: | :-----------: |</p>
+          <p>| TTS 偏好重构 + 缓存 + 内联播放器   |      ~8       |    ~500 行    |</p>
+          <p>| 有声书浮动按钮 + 抽屉播放器        |    2 新建     |    ~500 行    |</p>
+          <p>| 有声书 Store/Hook/集成重构         |      ~5       |    ~300 行    |</p>
+          <p>| 数据库迁移（pitch, playback_rate） |       1       |    ~30 行     |</p>
+          <p>| 修复（textSplitter, 颜色等）       |      ~6       |    ~50 行     |</p>
+          <p>| <strong>合计</strong>                           |    <strong>~22</strong>    | <strong>~1,380 行</strong> |</p>
+          <h3>TTS 多引擎系统（2026-06-06 基础建设）</h3>
+          <p>基于 <code>ITTSProvider</code> 统一接口的多引擎 TTS 系统，覆盖 13 个引擎。</p>
+          <p><strong>本地免费引擎（4 个）：</strong></p>
+          <ul>
+            <li><strong>Sherpa-ONNX + Kokoro</strong>：中英文双语主力引擎（TTS Arena #1, 8 种中文语音 + 10+ 英文）</li>
+            <li><strong>Supertonic TTS</strong>：极速英文引擎（CPU 167x 实时, M4 Pro 性能）</li>
+            <li><strong>PaddleSpeech</strong>：百度飞桨开源中文引擎（Python CLI 子进程）</li>
+            <li><strong>Piper CLI</strong>：40+ 语言兜底引擎（编译失败备用）</li>
+          </ul>
+          <p><strong>远程云端引擎（9 个）：</strong></p>
+          <ul>
+            <li>国内：阿里云 Qwen3-TTS（中文最佳）、火山引擎（基础音色免费）、腾讯云 TTS（¥0.75/万字最低）、百度智能云 TTS（企业 1 亿次免费）</li>
+            <li>国际：OpenAI TTS、Google Cloud TTS（75+ 语言）、Azure Speech（国内节点 ¥0.95/万字）、Amazon Polly（首年 500 万字符/月免费）、ElevenLabs（语音克隆天花板）</li>
+          </ul>
+          <p><strong>安全：</strong></p>
+          <ul>
+            <li>API Key AES-256-GCM 加密存储（<code>CredentialStore</code>）+ PBKDF2(deviceId) 派生密钥 + 0o600 权限</li>
+            <li>配置远程引擎前强制隐私声明弹窗（两重确认勾选）</li>
+            <li>远程引擎失败自动降级到本地引擎</li>
+          </ul>
+          <p><strong>集成入口：</strong></p>
+          <ul>
+            <li>消息右键菜单 "朗读"（<code>MessageBubble.tsx</code>）</li>
+            <li>AI 对话自动语音回复开关（<code>AIChatView.tsx</code>）</li>
+            <li>ChatView 头部菜单 "朗读最新消息"（<code>ChatView.tsx</code>）</li>
+            <li>设置 → 语音合成 (TTS)（<code>TTSSettings.tsx</code>）</li>
+          </ul>
+          <p><strong>TTS 设置页功能：</strong></p>
+          <ul>
+            <li>引擎状态展示（本地/云端分区，已就绪/未安装/错误状态）</li>
+            <li>语音浏览 + 下载 + 删除 + 试听</li>
+            <li>语速 0.25x-4.0x 滑块 + 音调 0.5x-2.0x 滑块</li>
+            <li>隐私模式切换（仅本地 / 允许云端）</li>
+            <li>语音模型静默下载（首次启动 30s 后后台下载默认语音 Kokoro ~160MB）</li>
+          </ul>
+          <p><strong>基础设施：</strong></p>
+          <ul>
+            <li><code>ITTSProvider</code> 统一接口（<code>packages/core/src/providers/ITTSProvider.ts</code>）</li>
+            <li><code>TTSManager</code> 多引擎管理器（注册/切换/降级链）</li>
+            <li><code>VoiceManager</code> 语音模型注册表 + HTTP 下载 + 清单管理</li>
+            <li><code>CredentialStore</code> AES-256-GCM 加密存储</li>
+            <li>9 个 IPC 通道（tts:get-engines / speak / speak-stream / cancel-stream / download-voice / set-credentials 等）</li>
+          </ul>
+          <h3>有声书 (EPUB Audiobook)</h3>
+          <p><strong>核心功能：</strong></p>
+          <ul>
+            <li>逐句朗读 + 高亮（当前句黄色背景 + 已读句灰色）</li>
+            <li>自动翻页（高亮句超出视口触发 epubjs rendition.next()）</li>
+            <li>跨章节连续播放（relocated 事件自动追加新页句子）</li>
+            <li>内嵌播放条（字幕滚动 + 进度拖拽 + 快进快退 + 章节导航 + 书签 + 导出 + 定时关闭）</li>
+          </ul>
+          <p><strong>播放体验：</strong></p>
+          <ul>
+            <li>断点续听（CFI + 句子索引 + TTS 配置持久化到 SQLite，重新打开提示恢复）</li>
+            <li>多语音选择（<code>AudiobookVoiceSelector</code>）</li>
+            <li>语速 0.5x-4.0x 实时调节</li>
+            <li>定时关闭（15/30/60/90 分钟 / 当前章结束，倒计时显示）</li>
+            <li>快进快退（按累计音频时长跳过 ~10s / ~30s）</li>
+            <li>文本跟随模式（高亮句 scrollIntoView({ block: 'center' })）</li>
+            <li>句间停顿（200ms 静默间隔）</li>
+          </ul>
+          <p><strong>进度与存储：</strong></p>
+          <ul>
+            <li>3 张 SQLite 表（audiobook_progress / audiobook_bookmarks / audiobook_history）</li>
+            <li>每 5 秒 + 暂停时 + 翻页时 + 关闭时自动保存</li>
+            <li>书签列表管理（命名 + 增删 + 跳转 + 恢复语音配置）</li>
+            <li>播放统计（每次听书时长/句子数/引擎记录）</li>
+          </ul>
+          <p><strong>导出音频（<code>AudiobookExportDialog</code>）：</strong></p>
+          <ul>
+            <li>批量合成当前章所有句子 → FFmpeg concat 拼接 → 通过系统保存对话框导出 WAV/MP3</li>
+            <li>导出进度条实时反馈，支持中途取消</li>
+            <li>导出完成自动打开文件所在目录</li>
+          </ul>
+          <p><strong>技术核心：</strong></p>
+          <ul>
+            <li><code>textSplitter.ts</code>：段落提取 + 中英文分句 + 非正文过滤（页码/脚注/引用）</li>
+            <li><code>domMarker.ts</code>：TreeWalker 文本节点定位 + Range.surroundContents 逐句标记</li>
+            <li><code>useAudiobook.ts</code>：提取→分句→TTS 合成→播放→高亮→翻页 全流程调度</li>
+          </ul>
+          <h3>UI 增强</h3>
+          <ul>
+            <li><strong>联系人列表</strong>（<code>ContactsView.tsx</code>）：群组/频道成员汇总，在线绿点 + Bot 标签 + 搜索过滤 + 点击创建私聊</li>
+            <li><strong>Emoji 选择器</strong>（<code>EmojiPicker.tsx</code>）：7 分类（表情/手势/爱心/物品/自然/食物/符号）~300 emoji，8 列网格，光标位置插入</li>
+          </ul>
+          <h3>修复</h3>
+          <ul>
+            <li><code>LocalProvider.ts</code> MessageStatus 类型错误（<code>as string</code> → <code>as MessageStatus</code>）</li>
+          </ul>
+          <h3>文档</h3>
+          <p>| 文档                                  | 说明                                      |</p>
+          <p>| ------------------------------------- | ----------------------------------------- |</p>
+          <p>| <code>docs/Piper TTS 集成评估报告.md</code>      | 14 种 TTS 方案横向对比 + 完整引擎架构设计 |</p>
+          <p>| <code>docs/EPUB 电子书转有声书方案设计.md</code> | 有声书完整方案 + 架构 + 实施计划          |</p>
+          <p>| <code>docs/未完成工作清单.md</code>              | 代码库逐项验证的剩余工作清单              |</p>
+          <h3>代码统计</h3>
+          <p>| 类别                    | 新增文件 |    代码量     |</p>
+          <p>| ----------------------- | :------: | :-----------: |</p>
+          <p>| TTS 引擎 + 管理器       |    16    |   ~3,700 行   |</p>
+          <p>| 有声书                  |    12    |   ~1,800 行   |</p>
+          <p>| UI 增强（联系人/Emoji） |    2     |    ~350 行    |</p>
+          <p>| IPC/Preload/类型        | ~10 修改 |    ~500 行    |</p>
+          <p>| <strong>合计</strong>                | <strong>~40</strong>  | <strong>~6,350 行</strong> |</p>
+          <p>| TTS 引擎总计 | 4 本地 + 9 云端 = 13 引擎 |</p>
+          <p>| 所有 commits typecheck 状态 | 8/8 ✅ |</p>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">v0.1.1 · 消息状态系统 等</h2>
+          <span class="changelog-date">2026年6月5日</span>
+        </div>
+        <div class="changelog-body">
+          <h3>概述</h3>
+          <p>从单一 <code>isRead: boolean</code> 全面升级为 Telegram 风格的<strong>五态消息指示器</strong>，覆盖数据层（IServerProvider + SQLite 迁移 + 所有 Provider）、UI 层（StatusIndicator / MessageDetailModal / MediaUploadPlaceholder）和服务端（WSS message_delivered / message_read 推送）。消息发送流程重构为乐观更新 + 自动重试。</p>
+          <h3>数据层</h3>
+          <ul>
+            <li><strong>MessageStatus 类型</strong>：<code>'sending' | 'sent' | 'delivered' | 'read' | 'failed'</code></li>
+            <li><strong>Message 接口</strong>新增 <code>status</code>、<code>sentAt</code>、<code>deliveredAt</code>、<code>readAt</code> 字段</li>
+            <li><strong>LocalProvider</strong>：SQLite <code>messages</code> 表 ALTER TABLE 新增 4 列，<code>sendMessage()</code> 设置 <code>status: 'sent'</code> + <code>sentAt</code>，<code>markAsRead()</code> 同步设置 <code>status: 'read'</code> + <code>readAt</code></li>
+            <li><strong>WebSocketProvider</strong>：新增 <code>message_delivered</code> / <code>message_read</code> 事件类型，<code>handlePacket()</code> 分发状态变更</li>
+            <li><strong>MatrixProvider</strong>：<code>matrixEventToMessage()</code> 默认 <code>status: 'sent'</code>，注册 <code>Room.receipt</code> 事件 → <code>status: 'read'</code> 映射</li>
+          </ul>
+          <h3>UI 层</h3>
+          <ul>
+            <li><strong>StatusIndicator</strong>：Telegram 风格五态图标</li>
+            <li>🕐 sending（发送中）→ ✓ 单灰勾（已发送）→ ✓✓ 双灰勾（已送达）→ ✓✓ 蓝色（已读）→ ❌ 红色（失败）</li>
+            <li><strong>频道特殊处理</strong>：<code>roomType === 'channel'</code> 时仅显示 👁 + 已查看人数，不显示勾选标记</li>
+            <li><strong>MessageDetailModal</strong>：右键菜单 → "查看详情" → 显示创建/发送/送达/已读时间线 + 状态徽章</li>
+            <li><strong>MediaUploadPlaceholder</strong>：上传中尚未获得 mediaUrl 的媒体消息显示上传占位（类型图标 + 文件名 + 进度条 + 百分比），而非"无法找到"错误</li>
+          </ul>
+          <h3>useChatStore 重构</h3>
+          <ul>
+            <li><strong>乐观更新</strong>：<code>sendMessage()</code> 立即创建 <code>status: 'sending'</code> 消息显示在 UI → 成功后替换为服务端返回的消息</li>
+            <li><strong>自动重试</strong>：发送失败后指数退避重试（1s / 2s / 4s），最多 3 次，全部失败标记 <code>status: 'failed'</code></li>
+            <li><strong>upsertMessage</strong>：智能合并 WSS 推送的状态更新，保留最高优先级状态（read > delivered > sent > sending > failed）</li>
+            <li><strong>防重复气泡</strong>：<code>sendFile</code> / <code>sendMessage</code> 成功后先检查消息是否已被 onMessage 回调添加，避免重复</li>
+          </ul>
+          <h3>WSS 服务端</h3>
+          <ul>
+            <li><strong>message_delivered</strong>：消息广播后检测是否有其他在线客户端，有则向发送者推送送达状态</li>
+            <li><strong>message_read</strong>：<code>mark_read</code> 处理后推送已读状态给消息发送者 + 广播 <code>readCount</code> 给房间所有人</li>
+            <li><strong>WSS schema 迁移</strong>：<code>wss_messages</code> 表新增 <code>status</code>/<code>sent_at</code>/<code>delivered_at</code>/<code>read_at</code> 列</li>
+            <li><strong>所有消息响应</strong>（<code>get_messages</code>/<code>send_message</code>/<code>schedule_message</code>/<code>sendSystemMessage</code>）添加 <code>status</code> 字段</li>
+          </ul>
+          <h3>涉及文件</h3>
+          <p>| 文件                                                              | 变更                                                                                |</p>
+          <p>| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------- |</p>
+          <p>| <code>packages/core/src/providers/IServerProvider.ts</code>                  | 新增 <code>MessageStatus</code> 类型，<code>Message</code> 新增 4 字段                                    |</p>
+          <p>| <code>packages/core/src/providers/LocalProvider.ts</code>                    | ALTER TABLE + sendMessage/markAsRead/rowToMessage 适配                              |</p>
+          <p>| <code>packages/core/src/providers/WebSocketProvider.ts</code>                | message_delivered/read 事件分发                                                     |</p>
+          <p>| <code>packages/core/src/providers/MatrixProvider.ts</code>                   | Room.receipt 已读回执映射                                                           |</p>
+          <p>| <code>apps/desktop/src/main/ws-server.ts</code>                              | 状态推送 + readCount 广播 + WSS schema 迁移                                         |</p>
+          <p>| <code>apps/desktop/src/renderer/src/store/useChatStore.ts</code>             | 乐观更新/重试/upsertMessage/防重复                                                  |</p>
+          <p>| <code>apps/desktop/src/renderer/src/components/MessageBubble.tsx</code>      | StatusIndicator / roomType 差异化 / 频道 👁 / MediaUploadPlaceholder / 右键详情入口 |</p>
+          <p>| <code>apps/desktop/src/renderer/src/components/MessageDetailModal.tsx</code> | <strong>新建</strong> — 消息详情弹窗                                                             |</p>
+          <p>| <code>apps/desktop/src/renderer/src/App.tsx</code>                           | addMessage → upsertMessage                                                          |</p>
+          <p>| <code>apps/desktop/src/renderer/src/components/ChatView.tsx</code>           | 透传 roomType + onViewDetail                                                        |</p>
+        </div>
+      </div>
+
+      <div class="glass-card changelog-card">
+        <div class="changelog-header">
+          <h2 class="changelog-version">内置浏览器</h2>
           <span class="changelog-date">2026年6月2日</span>
         </div>
         <div class="changelog-body">
           <h3>内置浏览器窗口</h3>
           <p>聊天消息中的 URL 自动识别为可点击链接，点击弹出独立 BrowserWindow 加载目标网站，自动嗅探页面中的视频资源并支持在线播放。</p>
           <ul>
-            <li>**链接识别**：`TextContent` 组件自动解析消息文本中的 HTTP/HTTPS URL，渲染为蓝色可点击链接，派发 `open-browser` 自定义事件</li>
-            <li>**独立窗口**：BrowserWindow 直接加载目标 URL，原生窗口框架，使用独立 `persist:browser` session 持久化 Cookie/Storage</li>
-            <li>**工具栏**：前进/后退/刷新、地址栏（输入新 URL 跳转）、关闭窗口、系统浏览器打开（`shell.openExternal`）、Ctrl+L 聚焦地址栏</li>
-            <li>**持久登录态**：`persist:browser` 分区，所有浏览器窗口共享 Cookie，重启应用后登录态保持</li>
+            <li><strong>链接识别</strong>：<code>TextContent</code> 组件自动解析消息文本中的 HTTP/HTTPS URL，渲染为蓝色可点击链接，派发 <code>open-browser</code> 自定义事件</li>
+            <li><strong>独立窗口</strong>：BrowserWindow 直接加载目标 URL，原生窗口框架，使用独立 <code>persist:browser</code> session 持久化 Cookie/Storage</li>
+            <li><strong>工具栏</strong>：前进/后退/刷新、地址栏（输入新 URL 跳转）、关闭窗口、系统浏览器打开（<code>shell.openExternal</code>）、Ctrl+L 聚焦地址栏</li>
+            <li><strong>持久登录态</strong>：<code>persist:browser</code> 分区，所有浏览器窗口共享 Cookie，重启应用后登录态保持</li>
           </ul>
           <h3>三层视频嗅探</h3>
           <p>| 嗅探层                  | 位置                       | 方式                                                                                           |</p>
           <p>| ----------------------- | -------------------------- | ---------------------------------------------------------------------------------------------- |</p>
-          <p>| webRequest URL          | 主进程 `onBeforeRequest`   | 正则匹配 `.mp4/.m3u8/.mpd/.flv/.webm/.mkv/.mov/.avi`                                           |</p>
-          <p>| webRequest Content-Type | 主进程 `onHeadersReceived` | 匹配 `video/*`、`audio/*`、`application/x-mpegURL`、`application/dash+xml`                     |</p>
-          <p>| 主世界 JS 注入          | `executeJavaScript`        | 劫持 `fetch`/`XMLHttpRequest` + 扫描 `<video>`/`<source>` 标签，通过 `window.postMessage` 回传 |</p>
+          <p>| webRequest URL          | 主进程 <code>onBeforeRequest</code>   | 正则匹配 <code>.mp4/.m3u8/.mpd/.flv/.webm/.mkv/.mov/.avi</code>                                           |</p>
+          <p>| webRequest Content-Type | 主进程 <code>onHeadersReceived</code> | 匹配 <code>video/<em></code>、<code>audio/</em></code>、<code>application/x-mpegURL</code>、<code>application/dash+xml</code>                     |</p>
+          <p>| 主世界 JS 注入          | <code>executeJavaScript</code>        | 劫持 <code>fetch</code>/<code>XMLHttpRequest</code> + 扫描 <code><video></code>/<code><source></code> 标签，通过 <code>window.postMessage</code> 回传 |</p>
           <h3>M3U8 校验与结果展示</h3>
           <ul>
-            <li>**M3U8 异步校验**：嗅探到 `.m3u8` 链接后 `fetch()` 验证，检查响应内容含 `#EXTM3U`/`#EXTINF` → 标记 valid/invalid</li>
-            <li>**TS/M4S 分片过滤**：`.ts`/`.m4s` 流媒体分片直接过滤，不显示在嗅探列表</li>
-            <li>**页面导航刷新**：URL 跳转时自动清空旧结果，重新嗅探新页面</li>
+            <li><strong>M3U8 异步校验</strong>：嗅探到 <code>.m3u8</code> 链接后 <code>fetch()</code> 验证，检查响应内容含 <code>#EXTM3U</code>/<code>#EXTINF</code> → 标记 valid/invalid</li>
+            <li><strong>TS/M4S 分片过滤</strong>：<code>.ts</code>/<code>.m4s</code> 流媒体分片直接过滤，不显示在嗅探列表</li>
+            <li><strong>页面导航刷新</strong>：URL 跳转时自动清空旧结果，重新嗅探新页面</li>
           </ul>
           <p>| 链接类型        | 状态     | 图标  | 点击行为              |</p>
           <p>| --------------- | -------- | :---: | --------------------- |</p>
@@ -75,144 +1101,141 @@
           <p>| M3U8 校验中     | checking | ⏳ 黄 | 仅复制链接            |</p>
           <h3>视频播放集成</h3>
           <ul>
-            <li>**弹出播放器**：点击可播放条目 → 暂停页面中视频 → 新建 BrowserWindow 加载 VideoPlayer 组件（`?player=1&src=...`）</li>
-            <li>**HLS/M3U8 支持**：VideoPlayer 新增 HLS 动态解码（`import('hls.js') → hls.loadSource() + hls.attachMedia()`），hls.js 未安装时回退 Safari 原生</li>
-            <li>**standalone 模式**：`<VideoPlayer standalone>` 解除内联尺寸限制（maxWidth 280→100%、maxHeight 200→100vh），自动播放</li>
-            <li>**不可播放条目**：仍可点击复制链接到剪贴板，蓝色高亮反馈 600ms</li>
+            <li><strong>弹出播放器</strong>：点击可播放条目 → 暂停页面中视频 → 新建 BrowserWindow 加载 VideoPlayer 组件（<code>?player=1&src=...</code>）</li>
+            <li><strong>HLS/M3U8 支持</strong>：VideoPlayer 新增 HLS 动态解码（<code>import('hls.js') → hls.loadSource() + hls.attachMedia()</code>），hls.js 未安装时回退 Safari 原生</li>
+            <li><strong>standalone 模式</strong>：<code><VideoPlayer standalone></code> 解除内联尺寸限制（maxWidth 280→100%、maxHeight 200→100vh），自动播放</li>
+            <li><strong>不可播放条目</strong>：仍可点击复制链接到剪贴板，蓝色高亮反馈 600ms</li>
           </ul>
           <h3>请求安全与反检测</h3>
           <ul>
-            <li>**请求头伪装**：UA 替换为标准 Chrome 131，自动补齐 Referer</li>
-            <li>**弹窗拦截**：`window.open()`/`target="_blank"` 全部在当前窗口内导航</li>
-            <li>**独立 Session**：`session.fromPartition('persist:browser')`，主窗口 CSP 不影响浏览器窗口</li>
-            <li>**反检测脚本**（主世界注入）：覆盖 11 项特征（`navigator.webdriver`→false、补充 `window.chrome`、补全 `navigator.plugins` 等）</li>
+            <li><strong>请求头伪装</strong>：UA 替换为标准 Chrome 131，自动补齐 Referer</li>
+            <li><strong>弹窗拦截</strong>：<code>window.open()</code>/<code>target="_blank"</code> 全部在当前窗口内导航</li>
+            <li><strong>独立 Session</strong>：<code>session.fromPartition('persist:browser')</code>，主窗口 CSP 不影响浏览器窗口</li>
+            <li><strong>反检测脚本</strong>（主世界注入）：覆盖 11 项特征（<code>navigator.webdriver</code>→false、补充 <code>window.chrome</code>、补全 <code>navigator.plugins</code> 等）</li>
           </ul>
           <h3>架构演进</h3>
           <p>| 尝试                      | 问题                                     | 结论                           |</p>
           <p>| ------------------------- | ---------------------------------------- | ------------------------------ |</p>
-          <p>| `<webview>` + React       | DOM 对账冲突→ERR_ABORTED、焦点抢占       | 废弃                           |</p>
-          <p>| BrowserView + 透明窗口    | `transparent:true`→macOS 窗口消失        | 废弃                           |</p>
-          <p>| preload 中 XHR/Fetch 劫持 | `contextIsolation:true` 下只影响隔离世界 | 改为主世界 `executeJavaScript` |</p>
-          <p>| `all:initial` CSS         | SVG 图标放大、继承混乱                   | 改为精确属性重置               |</p>
+          <p>| <code><webview></code> + React       | DOM 对账冲突→ERR_ABORTED、焦点抢占       | 废弃                           |</p>
+          <p>| BrowserView + 透明窗口    | <code>transparent:true</code>→macOS 窗口消失        | 废弃                           |</p>
+          <p>| preload 中 XHR/Fetch 劫持 | <code>contextIsolation:true</code> 下只影响隔离世界 | 改为主世界 <code>executeJavaScript</code> |</p>
+          <p>| <code>all:initial</code> CSS         | SVG 图标放大、继承混乱                   | 改为精确属性重置               |</p>
           <h3>涉及文件</h3>
           <p>| 文件                                                         | 说明                                                                  |</p>
           <p>| ------------------------------------------------------------ | --------------------------------------------------------------------- |</p>
-          <p>| `apps/desktop/src/preload/browser.ts`                        | **新增** — 浏览器窗口 preload（工具栏 + 嗅探面板 + postMessage 监听） |</p>
-          <p>| `apps/desktop/src/main/index.ts`                             | 7 个 browser IPC；主世界嗅探脚本注入；persist:browser session         |</p>
-          <p>| `apps/desktop/src/preload/index.ts`                          | `api.browser.{open, openExternally, openPlayer, onPlayVideoInChat}`   |</p>
-          <p>| `apps/desktop/src/renderer/src/components/MessageBubble.tsx` | `TextContent`：URL 识别 + `open-browser` 事件                         |</p>
-          <p>| `apps/desktop/src/renderer/src/components/VideoPlayer.tsx`   | `standalone` 模式 + HLS 动态解码                                      |</p>
-          <p>| `apps/desktop/src/renderer/src/App.tsx`                      | `open-browser` 监听 + `?player=1` 播放器窗口                          |</p>
-          <p>| `apps/desktop/electron.vite.config.ts`                       | preload 多入口（`index.ts` + `browser.ts`）                           |</p>
-          <p>| `apps/desktop/package.json`                                  | 新增 `hls.js` 依赖                                                    |</p>
-          <p>---</p>
+          <p>| <code>apps/desktop/src/preload/browser.ts</code>                        | <strong>新增</strong> — 浏览器窗口 preload（工具栏 + 嗅探面板 + postMessage 监听） |</p>
+          <p>| <code>apps/desktop/src/main/index.ts</code>                             | 7 个 browser IPC；主世界嗅探脚本注入；persist:browser session         |</p>
+          <p>| <code>apps/desktop/src/preload/index.ts</code>                          | <code>api.browser.{open, openExternally, openPlayer, onPlayVideoInChat}</code>   |</p>
+          <p>| <code>apps/desktop/src/renderer/src/components/MessageBubble.tsx</code> | <code>TextContent</code>：URL 识别 + <code>open-browser</code> 事件                         |</p>
+          <p>| <code>apps/desktop/src/renderer/src/components/VideoPlayer.tsx</code>   | <code>standalone</code> 模式 + HLS 动态解码                                      |</p>
+          <p>| <code>apps/desktop/src/renderer/src/App.tsx</code>                      | <code>open-browser</code> 监听 + <code>?player=1</code> 播放器窗口                          |</p>
+          <p>| <code>apps/desktop/electron.vite.config.ts</code>                       | preload 多入口（<code>index.ts</code> + <code>browser.ts</code>）                           |</p>
+          <p>| <code>apps/desktop/package.json</code>                                  | 新增 <code>hls.js</code> 依赖                                                    |</p>
         </div>
       </div>
 
       <div class="glass-card changelog-card">
         <div class="changelog-header">
-          <h2 class="changelog-version">v视频播放与媒体处理</h2>
+          <h2 class="changelog-version">视频播放与媒体处理</h2>
           <span class="changelog-date">2026年5月31日</span>
         </div>
         <div class="changelog-body">
           <h3>FFmpeg/FFprobe 集成</h3>
           <ul>
-            <li>**捆绑分发**：`@ffmpeg-installer/ffmpeg` + `@ffprobe-installer/ffprobe` 随应用分发预编译二进制</li>
-            <li>**视频编码探测**：上传时自动检测编码器（FFprobe → VideoMeta）</li>
-            <li>**HEVC/Dolby Vision 转码**：`hevc`/`hvc1`/`dvh1`/`dvhe` → 后台异步 H.264 SDR 转码</li>
-            <li>**封面缩略图**：自动提取视频首帧作为消息气泡封面（`<video poster>`）</li>
-            <li>**视频笔记生成**：圆形裁剪 + 静音 + 60s 限制，对标 Telegram video_note</li>
+            <li><strong>捆绑分发</strong>：<code>@ffmpeg-installer/ffmpeg</code> + <code>@ffprobe-installer/ffprobe</code> 随应用分发预编译二进制</li>
+            <li><strong>视频编码探测</strong>：上传时自动检测编码器（FFprobe → VideoMeta）</li>
+            <li><strong>HEVC/Dolby Vision 转码</strong>：<code>hevc</code>/<code>hvc1</code>/<code>dvh1</code>/<code>dvhe</code> → 后台异步 H.264 SDR 转码</li>
+            <li><strong>封面缩略图</strong>：自动提取视频首帧作为消息气泡封面（<code><video poster></code>）</li>
+            <li><strong>视频笔记生成</strong>：圆形裁剪 + 静音 + 60s 限制，对标 Telegram video_note</li>
           </ul>
           <h3>自定义视频播放器</h3>
           <ul>
-            <li>替换原生 `<video controls>` 为自建 VideoPlayer 组件，inline/全屏控件一致</li>
-            <li>**控件栏**：播放/暂停、可拖拽进度条（缓冲+播放双图层）、倍速、音量、全屏</li>
-            <li>**全屏**：3s 自动隐藏控件，ESC 退出，键盘快捷键（Space/←→/↑↓/F）</li>
-            <li>**播放进度记忆**：localStorage 持久化，重开视频从上次位置继续</li>
-            <li>**附件丢失 UI**：文件被清理后显示图标+文件名+"无法找到"占位，停止重试循环</li>
-            <li>**视频播放方式设置**：内置播放器 / 系统播放器（IINA 等），设置→数据与存储</li>
+            <li>替换原生 <code><video controls></code> 为自建 VideoPlayer 组件，inline/全屏控件一致</li>
+            <li><strong>控件栏</strong>：播放/暂停、可拖拽进度条（缓冲+播放双图层）、倍速、音量、全屏</li>
+            <li><strong>全屏</strong>：3s 自动隐藏控件，ESC 退出，键盘快捷键（Space/←→/↑↓/F）</li>
+            <li><strong>播放进度记忆</strong>：localStorage 持久化，重开视频从上次位置继续</li>
+            <li><strong>附件丢失 UI</strong>：文件被清理后显示图标+文件名+"无法找到"占位，停止重试循环</li>
+            <li><strong>视频播放方式设置</strong>：内置播放器 / 系统播放器（IINA 等），设置→数据与存储</li>
           </ul>
           <h3>字幕系统</h3>
           <ul>
-            <li>**内嵌字幕提取**：FFprobe 探测 → FFmpeg 提取文本字幕为 WebVTT → `<track>` 渲染</li>
-            <li>**外挂字幕上传**：右键菜单/⋮ 菜单 → .srt/.vtt/.ass/.ssa → FFmpeg 转 VTT</li>
-            <li>**PGS 位图字幕**：可探测列出，标记"待支持"（Chromium 无法渲染位图）</li>
-            <li>**字幕管理**：单选模式，来源标记（内嵌/外挂），活跃轨道高亮 ✓</li>
+            <li><strong>内嵌字幕提取</strong>：FFprobe 探测 → FFmpeg 提取文本字幕为 WebVTT → <code><track></code> 渲染</li>
+            <li><strong>外挂字幕上传</strong>：右键菜单/⋮ 菜单 → .srt/.vtt/.ass/.ssa → FFmpeg 转 VTT</li>
+            <li><strong>PGS 位图字幕</strong>：可探测列出，标记"待支持"（Chromium 无法渲染位图）</li>
+            <li><strong>字幕管理</strong>：单选模式，来源标记（内嵌/外挂），活跃轨道高亮 ✓</li>
           </ul>
           <h3>unbox-file:// 协议增强</h3>
           <ul>
-            <li>**Range 请求支持**：206 Partial Content + `bytes=start-end`，分段读取，支持视频流播和 seek</li>
-            <li>**大文件保护**：单次响应上限 200MB，超大文件自动流式传输避免 OOM</li>
-            <li>**路径编码修复**：`pathToUrl()` 逐段 percent-encode，兼容路径中 `@` 等特殊字符</li>
-            <li>**附件同步清理**：删除聊天消息时自动清理 mediaUrl/thumbnailUrl/subtitleTracks 文件</li>
-            <li>**附件丢失检测**：图片/GIF/视频笔记加载失败时显示 fallback UI</li>
+            <li><strong>Range 请求支持</strong>：206 Partial Content + <code>bytes=start-end</code>，分段读取，支持视频流播和 seek</li>
+            <li><strong>大文件保护</strong>：单次响应上限 200MB，超大文件自动流式传输避免 OOM</li>
+            <li><strong>路径编码修复</strong>：<code>pathToUrl()</code> 逐段 percent-encode，兼容路径中 <code>@</code> 等特殊字符</li>
+            <li><strong>附件同步清理</strong>：删除聊天消息时自动清理 mediaUrl/thumbnailUrl/subtitleTracks 文件</li>
+            <li><strong>附件丢失检测</strong>：图片/GIF/视频笔记加载失败时显示 fallback UI</li>
           </ul>
           <h3>设置页调整</h3>
           <ul>
-            <li>**移除 FFmpeg 开关**：FFmpeg 为默认且唯一方案，不再需要用户手动选择</li>
-            <li>**新增视频播放方式**：设置→数据与存储→内置播放器/系统播放器</li>
+            <li><strong>移除 FFmpeg 开关</strong>：FFmpeg 为默认且唯一方案，不再需要用户手动选择</li>
+            <li><strong>新增视频播放方式</strong>：设置→数据与存储→内置播放器/系统播放器</li>
           </ul>
-          <p>---</p>
         </div>
       </div>
 
       <div class="glass-card changelog-card">
         <div class="changelog-header">
-          <h2 class="changelog-version">v文件预览系统增强</h2>
+          <h2 class="changelog-version">文件预览系统增强</h2>
           <span class="changelog-date">2026年5月28日</span>
         </div>
         <div class="changelog-body">
           <h3>Office 文档在线预览</h3>
           <ul>
-            <li>**Word (.docx) 预览**：新增 `DocPreview` 组件，基于 `mammoth` 将 .docx 转为 HTML 渲染，跟随主题适配深浅色</li>
-            <li>**Excel (.xlsx/.csv) 预览**：新增 `SheetPreview` 组件，基于 `xlsx` 解析为 HTML 表格，固定浅色主题保证可读性</li>
+            <li><strong>Word (.docx) 预览</strong>：新增 <code>DocPreview</code> 组件，基于 <code>mammoth</code> 将 .docx 转为 HTML 渲染，跟随主题适配深浅色</li>
+            <li><strong>Excel (.xlsx/.csv) 预览</strong>：新增 <code>SheetPreview</code> 组件，基于 <code>xlsx</code> 解析为 HTML 表格，固定浅色主题保证可读性</li>
             <li>支持多 sheet 切换（Tab 标签栏）</li>
             <li>奇数行/偶数行底色交替，灰色边框</li>
-            <li>**PPT (.pptx/.ppt)**：降级为"用系统应用打开"</li>
-            <li>**旧格式（.doc/.xls/.mobi）**：不支持预览，给出转换建议提示</li>
+            <li><strong>PPT (.pptx/.ppt)</strong>：降级为"用系统应用打开"</li>
+            <li><strong>旧格式（.doc/.xls/.mobi）</strong>：不支持预览，给出转换建议提示</li>
           </ul>
           <h3>Office 预览方式设置</h3>
           <ul>
             <li>设置 → 数据与存储新增"Office 文档预览"选项：内置预览（默认）/ 系统应用</li>
-            <li>设置持久化到 `localStorage`，切换即时生效</li>
+            <li>设置持久化到 <code>localStorage</code>，切换即时生效</li>
           </ul>
           <h3>EPUB 电子书阅读增强</h3>
           <ul>
-            <li>**主题跟随**：深色/浅色主题自动切换 iframe 内配色</li>
-            <li>**字号缩放**：60%~200%，步进 10%，通过 epubjs `themes.fontSize()` 实现</li>
-            <li>**行距调节**：紧密(1.3) / 标准(1.6) / 宽松(2.0)，通过 `themes.override()` 实现</li>
-            <li>**阅读位置记忆**：CFI 位置持久化到 localStorage，重新打开自动跳转</li>
-            <li>**字号/行距持久化**：关闭后重新打开保持设置</li>
-            <li>**分阶段加载动画**：加载电子书… → 正在排版… → 正在分页… → 恢复阅读位置…，带旋转圆环动画</li>
-            <li>**页码追踪**：`rendition.on('relocated')` + `locations.locationFromCfi()` 精确映射</li>
-            <li>**DOM 结构修复**：viewer div 始终渲染（`visibility: hidden` 替代 DOM 移除），解决 ref 为 null 的问题</li>
+            <li><strong>主题跟随</strong>：深色/浅色主题自动切换 iframe 内配色</li>
+            <li><strong>字号缩放</strong>：60%~200%，步进 10%，通过 epubjs <code>themes.fontSize()</code> 实现</li>
+            <li><strong>行距调节</strong>：紧密(1.3) / 标准(1.6) / 宽松(2.0)，通过 <code>themes.override()</code> 实现</li>
+            <li><strong>阅读位置记忆</strong>：CFI 位置持久化到 localStorage，重新打开自动跳转</li>
+            <li><strong>字号/行距持久化</strong>：关闭后重新打开保持设置</li>
+            <li><strong>分阶段加载动画</strong>：加载电子书… → 正在排版… → 正在分页… → 恢复阅读位置…，带旋转圆环动画</li>
+            <li><strong>页码追踪</strong>：<code>rendition.on('relocated')</code> + <code>locations.locationFromCfi()</code> 精确映射</li>
+            <li><strong>DOM 结构修复</strong>：viewer div 始终渲染（<code>visibility: hidden</code> 替代 DOM 移除），解决 ref 为 null 的问题</li>
           </ul>
           <h3>代码质量提升</h3>
           <ul>
-            <li>**抽取 `useFileContent` Hook**：`useFileText` / `useFileBuffer`，消除四组件重复代码，内置 HTTP 缓存</li>
-            <li>**`file-type` 内容检测兜底**：扩展名 + MIME 无法识别时读取文件头 magic bytes</li>
-            <li>**大文本保护**：TextPreview >500KB 截断 + 警告条</li>
+            <li><strong>抽取 <code>useFileContent</code> Hook</strong>：<code>useFileText</code> / <code>useFileBuffer</code>，消除四组件重复代码，内置 HTTP 缓存</li>
+            <li><strong><code>file-type</code> 内容检测兜底</strong>：扩展名 + MIME 无法识别时读取文件头 magic bytes</li>
+            <li><strong>大文本保护</strong>：TextPreview >500KB 截断 + 警告条</li>
           </ul>
           <h3>端口自动查找</h3>
           <ul>
-            <li>`portUtils.ts`：`findAvailablePort(startPort)` 探测可用端口</li>
+            <li><code>portUtils.ts</code>：<code>findAvailablePort(startPort)</code> 探测可用端口</li>
             <li>内置 WSS + 独立 WS 启动前先查找，被占用自动递增</li>
-            <li>Store 接收实际端口并更新 `serverConfigs` 持久化</li>
+            <li>Store 接收实际端口并更新 <code>serverConfigs</code> 持久化</li>
             <li>默认端口 8080 → 8090，避免与 Expo Metro (8081) 冲突</li>
           </ul>
           <h3>独立预览窗口</h3>
           <ul>
-            <li>IPC `window:open-preview` 创建独立 BrowserWindow（960×720）</li>
-            <li>`main.tsx` URL 参数 `?preview=1` 分流渲染</li>
-            <li>`FilePreview` 新增 `embedded` prop 适配独立窗口模式</li>
+            <li>IPC <code>window:open-preview</code> 创建独立 BrowserWindow（960×720）</li>
+            <li><code>main.tsx</code> URL 参数 <code>?preview=1</code> 分流渲染</li>
+            <li><code>FilePreview</code> 新增 <code>embedded</code> prop 适配独立窗口模式</li>
           </ul>
           <h3>其他</h3>
           <ul>
-            <li>CSP `style-src` 新增 `blob:` 来源</li>
-            <li>`db:run` / `db:exec` 对"duplicate column name"不抛错</li>
-            <li>移除废弃的 `@types/react-native@0.73.0`</li>
+            <li>CSP <code>style-src</code> 新增 <code>blob:</code> 来源</li>
+            <li><code>db:run</code> / <code>db:exec</code> 对"duplicate column name"不抛错</li>
+            <li>移除废弃的 <code>@types/react-native@0.73.0</code></li>
           </ul>
-          <p>---</p>
         </div>
       </div>
 
@@ -236,15 +1259,14 @@
             <li>8、Copilot</li>
           </ul>
           <h3>产品简介</h3>
-          <p>unobox 是一款仿照 Telegram 功能设计的**跨平台私有即时通讯应用**，支持用户自主选择和管理通讯服务后端。首个版本涵盖桌面端（Electron + React），移动端尚处于脚手架阶段。</p>
-          <p>**核心价值主张：**</p>
+          <p>unobox 是一款仿照 Telegram 功能设计的<strong>跨平台私有即时通讯应用</strong>，支持用户自主选择和管理通讯服务后端。首个版本涵盖桌面端（Electron + React），移动端尚处于脚手架阶段。</p>
+          <p><strong>核心价值主张：</strong></p>
           <ul>
-            <li>**隐私优先**：数据由用户自主控制，支持纯本地存储模式</li>
-            <li>**灵活部署**：支持 WebSocket、Matrix 等多种后端，可随时切换</li>
-            <li>**功能完整**：复刻 Telegram 核心功能，包括 Bot、Channel、群组等</li>
-            <li>**跨平台**：Windows / macOS / Linux 全平台支持（桌面端）</li>
+            <li><strong>隐私优先</strong>：数据由用户自主控制，支持纯本地存储模式</li>
+            <li><strong>灵活部署</strong>：支持 WebSocket、Matrix 等多种后端，可随时切换</li>
+            <li><strong>功能完整</strong>：复刻 Telegram 核心功能，包括 Bot、Channel、群组等</li>
+            <li><strong>跨平台</strong>：Windows / macOS / Linux 全平台支持（桌面端）</li>
           </ul>
-          <p>---</p>
           <h3>平台与技术</h3>
           <p>| 组件     | 技术方案                                 |</p>
           <p>| -------- | ---------------------------------------- |</p>
@@ -254,22 +1276,21 @@
           <p>| 状态管理 | Zustand                                  |</p>
           <p>| 构建工具 | Turborepo + pnpm                         |</p>
           <p>| 数据库   | better-sqlite3（桌面端）                 |</p>
-          <p>---</p>
           <h3>服务端架构</h3>
           <ul>
-            <li>**IServerProvider 统一接口**：所有服务端通信通过统一接口实现，用户可在 UI 中增减服务器。</li>
-            <li>**ProviderManager**：多服务器管理核心，支持热插拔。</li>
-            <li>**启动引导**：首次启动时强制进入 OnboardingView 配置向导，至少配置一个服务器后方可进入主界面。</li>
-            <li>**单服务器激活模式**：从用户头像菜单切换当前激活的服务器，切换后界面内容自动刷新。</li>
+            <li><strong>IServerProvider 统一接口</strong>：所有服务端通信通过统一接口实现，用户可在 UI 中增减服务器。</li>
+            <li><strong>ProviderManager</strong>：多服务器管理核心，支持热插拔。</li>
+            <li><strong>启动引导</strong>：首次启动时强制进入 OnboardingView 配置向导，至少配置一个服务器后方可进入主界面。</li>
+            <li><strong>单服务器激活模式</strong>：从用户头像菜单切换当前激活的服务器，切换后界面内容自动刷新。</li>
           </ul>
-          <p>**已实现的 Provider：**</p>
+          <p><strong>已实现的 Provider：</strong></p>
           <ul>
-            <li>**WebSocketProvider**：自建 WebSocket 服务端连接器，支持多房间、实时消息广播、文件传输（Base64）、Token 鉴权。</li>
-            <li>**LocalProvider**：纯本地存储模式，基于 SQLite，数据保存在设备本地，完全离线可用。</li>
-            <li>**MatrixProvider**：Matrix（Synapse）协议适配，支持房间管理、消息收发、成员管理，端到端加密待实现。</li>
-            <li>**UnsupportedProvider**：Rocket.Chat / Nextcloud Talk 占位适配器，待 Phase 2 实现。</li>
+            <li><strong>WebSocketProvider</strong>：自建 WebSocket 服务端连接器，支持多房间、实时消息广播、文件传输（Base64）、Token 鉴权。</li>
+            <li><strong>LocalProvider</strong>：纯本地存储模式，基于 SQLite，数据保存在设备本地，完全离线可用。</li>
+            <li><strong>MatrixProvider</strong>：Matrix（Synapse）协议适配，支持房间管理、消息收发、成员管理，端到端加密待实现。</li>
+            <li><strong>UnsupportedProvider</strong>：Rocket.Chat / Nextcloud Talk 占位适配器，待 Phase 2 实现。</li>
           </ul>
-          <p>**内置 WebSocket 服务端（`backend/ws-server`）：**</p>
+          <p><strong>内置 WebSocket 服务端（<code>backend/ws-server</code>）：</strong></p>
           <ul>
             <li>多房间消息广播</li>
             <li>局域网 HTTP 文件直链共享</li>
@@ -278,9 +1299,8 @@
             <li>系统消息生成（加入/创建频道通知）</li>
             <li>Token 鉴权 + UUID 文件防冲突</li>
           </ul>
-          <p>---</p>
           <h3>消息功能</h3>
-          <p>**基础消息类型：**</p>
+          <p><strong>基础消息类型：</strong></p>
           <ul>
             <li>文本消息（支持 Markdown 渲染：粗体、斜体、代码块、代码行）</li>
             <li>图片消息（发送原图或压缩图）</li>
@@ -291,7 +1311,7 @@
             <li>GIF 动图（图片渲染 + 左上角 GIF 标签，附件菜单支持 image/gif）</li>
             <li>Emoji 表情</li>
           </ul>
-          <p>**消息操作：**</p>
+          <p><strong>消息操作：</strong></p>
           <ul>
             <li>引用回复（显示被引用消息预览）</li>
             <li>消息转发（ForwardModal 选择目标房间，支持跨房间转发）</li>
@@ -305,14 +1325,13 @@
             <li>消息跳转（点击引用 scrollIntoView + 2s 蓝色高亮闪烁）</li>
             <li>右键 / 长按消息菜单</li>
           </ul>
-          <p>**媒体处理：**</p>
+          <p><strong>媒体处理：</strong></p>
           <ul>
             <li>图片查看器（全屏浮层，滚轮缩放 25%-500%，拖拽平移，旋转，下载）</li>
             <li>发送前预览媒体文件</li>
             <li>多图 / 多文件批量发送</li>
             <li>拖拽发送文件（拖拽到聊天窗口直接发送，拖拽到会话列表项自动切换会话，蓝色高亮视觉反馈）</li>
           </ul>
-          <p>---</p>
           <h3>聊天列表</h3>
           <ul>
             <li>显示所有聊天类型（私聊、群组、Channel）</li>
@@ -326,7 +1345,6 @@
             <li>自定义文件夹（自定义名称、包含的会话类型/特定会话）</li>
             <li>聊天搜索</li>
           </ul>
-          <p>---</p>
           <h3>群组（Group）</h3>
           <ul>
             <li>创建群组（名称、头像、描述）</li>
@@ -340,17 +1358,16 @@
             <li>群投票（Poll）：创建投票（单选/多选/定时开始/定时结束），实时百分比进度条，关闭投票</li>
             <li>发言冷却（Slow Mode）：可配置 10s~1h 冷却时长，InputBar 倒计时锁定</li>
           </ul>
-          <p>---</p>
           <h3>Channel（频道）</h3>
           <p>创建 Channel 时必须选择存储模式：</p>
-          <p>**模式 A：与服务器同步（📡）**</p>
+          <p><strong>模式 A：与服务器同步（📡）</strong></p>
           <ul>
             <li>内容发布到已选择的服务器</li>
             <li>支持多端实时订阅</li>
             <li>支持他人订阅（公开 Channel）</li>
             <li>支持 Bot 集成</li>
           </ul>
-          <p>**模式 B：仅保存在本地（💾）**</p>
+          <p><strong>模式 B：仅保存在本地（💾）</strong></p>
           <ul>
             <li>数据保存在设备本地（SQLite）</li>
             <li>无需网络连接即可使用</li>
@@ -358,7 +1375,7 @@
             <li>支持导出（JSON/Markdown）</li>
             <li>支持 Bot 本地处理</li>
           </ul>
-          <p>**已实现的 Channel 功能：**</p>
+          <p><strong>已实现的 Channel 功能：</strong></p>
           <ul>
             <li>发布帖子（文章、图文混排）</li>
             <li>定时发布</li>
@@ -369,57 +1386,54 @@
             <li>Channel 统计（ChannelStatsModal：总览卡片 + 频率柱状图 + 活跃热力图 + 发言者排行）</li>
             <li>多管理员协作（updateMemberRole 接口 + RoomInfoModal 角色下拉选择器）</li>
           </ul>
-          <p>---</p>
           <h3>Bot 框架</h3>
-          <p>**Bot 注册与管理：**</p>
+          <p><strong>Bot 注册与管理：</strong></p>
           <ul>
             <li>Bot 注册（名称、头像、命令前缀、Webhook URL、命令列表）</li>
-            <li>Bot 删除（`unregisterBot` 接口，LocalProvider/WebSocketProvider 完整实现）</li>
+            <li>Bot 删除（<code>unregisterBot</code> 接口，LocalProvider/WebSocketProvider 完整实现）</li>
             <li>BotManageModal UI（注册、命令管理、删除、内联键盘配置）</li>
-            <li>InputBar 命令提示（输入 `/` 时实时过滤匹配命令）</li>
+            <li>InputBar 命令提示（输入 <code>/</code> 时实时过滤匹配命令）</li>
             <li>本地存储 Channel 可接入本地处理 Bot（无需网络）</li>
           </ul>
-          <p>**Bot 命令处理：**</p>
+          <p><strong>Bot 命令处理：</strong></p>
           <ul>
-            <li>Provider 层 `onBotCommand` 事件监听</li>
-            <li>App.tsx 订阅 `onBotCommand`，实现全自动 Bot 回复</li>
-            <li>内置命令支持：`/help`（列出命令）、`/ping`（连通性）、`/echo`（回显）、`/time`（时间）</li>
-            <li>Webhook 模式：配置 `webhookUrl` 的 Bot 委托给外部 HTTP 服务处理</li>
-            <li>防递归：Bot 回复消息标记 `botId`，不会再次触发命令处理</li>
+            <li>Provider 层 <code>onBotCommand</code> 事件监听</li>
+            <li>App.tsx 订阅 <code>onBotCommand</code>，实现全自动 Bot 回复</li>
+            <li>内置命令支持：<code>/help</code>（列出命令）、<code>/ping</code>（连通性）、<code>/echo</code>（回显）、<code>/time</code>（时间）</li>
+            <li>Webhook 模式：配置 <code>webhookUrl</code> 的 Bot 委托给外部 HTTP 服务处理</li>
+            <li>防递归：Bot 回复消息标记 <code>botId</code>，不会再次触发命令处理</li>
           </ul>
-          <p>**Bot 内联键盘（新增）：**</p>
+          <p><strong>Bot 内联键盘（新增）：</strong></p>
           <ul>
-            <li>类型系统：`InlineKeyboardButton`、`InlineKeyboardMarkup`、`CallbackQuery`</li>
-            <li>`MessageContent.replyMarkup` 字段，支持在消息下方渲染可点击按钮</li>
-            <li>MessageBubble 内联键盘渲染：URL 按钮（`<a>` 新标签打开）、回调按钮（`<button>` 点击触发回调）</li>
-            <li>ChatView 内联回调处理：`handleInlineCallback` → `answerCallbackQuery` → 刷新消息</li>
-            <li>App.tsx `onCallbackQuery` 订阅：点击按钮后自动编辑消息（更新文本 + 移除键盘）</li>
-            <li>LocalProvider 完整实现：`answerCallbackQuery` + `onCallbackQuery`</li>
-            <li>WebSocketProvider 代理：`answer_callback_query` / `callback_query` 消息类型</li>
+            <li>类型系统：<code>InlineKeyboardButton</code>、<code>InlineKeyboardMarkup</code>、<code>CallbackQuery</code></li>
+            <li><code>MessageContent.replyMarkup</code> 字段，支持在消息下方渲染可点击按钮</li>
+            <li>MessageBubble 内联键盘渲染：URL 按钮（<code><a></code> 新标签打开）、回调按钮（<code><button></code> 点击触发回调）</li>
+            <li>ChatView 内联回调处理：<code>handleInlineCallback</code> → <code>answerCallbackQuery</code> → 刷新消息</li>
+            <li>App.tsx <code>onCallbackQuery</code> 订阅：点击按钮后自动编辑消息（更新文本 + 移除键盘）</li>
+            <li>LocalProvider 完整实现：<code>answerCallbackQuery</code> + <code>onCallbackQuery</code></li>
+            <li>WebSocketProvider 代理：<code>answer_callback_query</code> / <code>callback_query</code> 消息类型</li>
             <li>BotManageModal 内联键盘配置 UI：展开面板、添加行、添加按钮（文字 + 回调数据）</li>
-            <li>BotConfig 扩展 `inlineKeyboard` 字段，注册时保存，回复时自动附带</li>
+            <li>BotConfig 扩展 <code>inlineKeyboard</code> 字段，注册时保存，回复时自动附带</li>
           </ul>
-          <p>**WS 服务端 Bot 存储（从占位升级为完整实现）：**</p>
+          <p><strong>WS 服务端 Bot 存储（从占位升级为完整实现）：</strong></p>
           <ul>
-            <li>新增 `bots` Map（`StoredBot` 接口）</li>
-            <li>`register_bot`：解析 payload → 写入 Map → 返回 `{ success, botId }`</li>
-            <li>`get_bots`：按 roomId 过滤返回 Bot 列表</li>
-            <li>`unregister_bot`：从 Map 中删除</li>
-            <li>`send_message` 中 Bot 命令检测：文本以 `/` 开头时遍历 bots Map 匹配命令，广播 `bot_command` 事件</li>
+            <li>新增 <code>bots</code> Map（<code>StoredBot</code> 接口）</li>
+            <li><code>register_bot</code>：解析 payload → 写入 Map → 返回 <code>{ success, botId }</code></li>
+            <li><code>get_bots</code>：按 roomId 过滤返回 Bot 列表</li>
+            <li><code>unregister_bot</code>：从 Map 中删除</li>
+            <li><code>send_message</code> 中 Bot 命令检测：文本以 <code>/</code> 开头时遍历 bots Map 匹配命令，广播 <code>bot_command</code> 事件</li>
           </ul>
           <p>待实现：Bot 权限控制、Bot 定时发布、MatrixProvider Bot 完整实现</p>
-          <p>---</p>
           <h3>AI 智能聊天（计划外已实现）</h3>
           <ul>
-            <li>**8 种 AI 接口支持**：OpenAI / Gemini / Claude / DeepSeek / OpenRouter / Qwen / MiniMax / 自定义</li>
-            <li>**三种 API 协议适配**：OpenAI 兼容格式、Gemini generateContent、Claude Messages</li>
-            <li>**AI 接口配置管理**（添加/编辑/删除/测试连接/获取模型列表）</li>
-            <li>**流式输出**：Electron 主进程 ReadableStream + IPC 事件逐块推送，逐 token 追加到气泡，支持中途取消</li>
-            <li>**AI 会话持久化**：会话和消息存储至 SQLite，刷新/重启后完整恢复历史消息和活跃会话</li>
-            <li>**思考过程展示**：DeepSeek R1 reasoning_content / Claude Extended Thinking，可折叠面板实时显示推理过程</li>
-            <li>**跨接口会话独立**：每个会话绑定特定 AI 接口 + 模型，切换会话即切换上下文</li>
+            <li><strong>8 种 AI 接口支持</strong>：OpenAI / Gemini / Claude / DeepSeek / OpenRouter / Qwen / MiniMax / 自定义</li>
+            <li><strong>三种 API 协议适配</strong>：OpenAI 兼容格式、Gemini generateContent、Claude Messages</li>
+            <li><strong>AI 接口配置管理</strong>（添加/编辑/删除/测试连接/获取模型列表）</li>
+            <li><strong>流式输出</strong>：Electron 主进程 ReadableStream + IPC 事件逐块推送，逐 token 追加到气泡，支持中途取消</li>
+            <li><strong>AI 会话持久化</strong>：会话和消息存储至 SQLite，刷新/重启后完整恢复历史消息和活跃会话</li>
+            <li><strong>思考过程展示</strong>：DeepSeek R1 reasoning_content / Claude Extended Thinking，可折叠面板实时显示推理过程</li>
+            <li><strong>跨接口会话独立</strong>：每个会话绑定特定 AI 接口 + 模型，切换会话即切换上下文</li>
           </ul>
-          <p>---</p>
           <h3>服务器管理</h3>
           <ul>
             <li>服务器列表（显示类型、状态、连接延迟）</li>
@@ -430,25 +1444,22 @@
             <li>服务器类型标识（Matrix 图标、WS 图标等）</li>
             <li>连接状态指示（绿色/黄色/红色）</li>
           </ul>
-          <p>---</p>
           <h3>UI/UX</h3>
           <ul>
-            <li>**布局**：三栏式桌面端布局（功能导航栏 60px + 聊天列表 320px + 聊天区域）</li>
-            <li>**主题**：深色主题（默认）/ 浅色主题，字体大小可调节，Zustand 持久化</li>
-            <li>**侧边栏**：文件夹图标列表，点击快速筛选会话；顶部头像弹出菜单（个人信息、服务器切换、设置入口）</li>
-            <li>**自定义无边框标题栏**</li>
-            <li>**消息气泡**：两种颜色区分自己/他人消息</li>
+            <li><strong>布局</strong>：三栏式桌面端布局（功能导航栏 60px + 聊天列表 320px + 聊天区域）</li>
+            <li><strong>主题</strong>：深色主题（默认）/ 浅色主题，字体大小可调节，Zustand 持久化</li>
+            <li><strong>侧边栏</strong>：文件夹图标列表，点击快速筛选会话；顶部头像弹出菜单（个人信息、服务器切换、设置入口）</li>
+            <li><strong>自定义无边框标题栏</strong></li>
+            <li><strong>消息气泡</strong>：两种颜色区分自己/他人消息</li>
           </ul>
-          <p>---</p>
           <h3>工程与基础设施</h3>
           <ul>
-            <li>**Monorepo 结构**：apps/desktop + apps/mobile + packages/core + packages/ui-web + packages/ui-mobile + backend/</li>
-            <li>**CI/CD**：GitHub Actions 自动构建（Linux AppImage/deb/rpm），跨仓库 Release 自动发布</li>
-            <li>**自动更新**：Electron autoUpdater 集成 + UpdateModal 更新提示弹窗</li>
-            <li>**静态官网**：`web/` 目录，含跨平台下载页、使用说明、更新日志，响应式适配</li>
-            <li>**安全增强**：Content-Security-Policy 配置（HTML meta + session.webRequest 响应头注入），WS 服务端用户身份兜底匹配</li>
+            <li><strong>Monorepo 结构</strong>：apps/desktop + apps/mobile + packages/core + packages/ui-web + packages/ui-mobile + backend/</li>
+            <li><strong>CI/CD</strong>：GitHub Actions 自动构建（Linux AppImage/deb/rpm），跨仓库 Release 自动发布</li>
+            <li><strong>自动更新</strong>：Electron autoUpdater 集成 + UpdateModal 更新提示弹窗</li>
+            <li><strong>静态官网</strong>：<code>web/</code> 目录，含跨平台下载页、使用说明、更新日志，响应式适配</li>
+            <li><strong>安全增强</strong>：Content-Security-Policy 配置（HTML meta + session.webRequest 响应头注入），WS 服务端用户身份兜底匹配</li>
           </ul>
-          <p>---</p>
           <h3>已知限制</h3>
           <p>以下功能尚未实现或仅有 Provider 层接口而缺 UI：</p>
           <ul>
@@ -461,7 +1472,6 @@
             <li>MatrixProvider Bot 完整实现（当前为占位）</li>
             <li>端到端加密（本地模式）</li>
           </ul>
-          <p>---</p>
         </div>
       </div>
       <!-- CHANGELOG_END -->

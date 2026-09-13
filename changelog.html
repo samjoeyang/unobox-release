@@ -43,7 +43,7 @@
 
       <div class="glass-card changelog-card">
         <div class="changelog-header">
-          <h2 class="changelog-version">未发布 · 📖 阅读器排版设置 + 有声书高亮内核重构 + 电子书标注 + 查词/翻译</h2>
+          <h2 class="changelog-version">v0.4.0 · 📖 阅读器排版设置 + 有声书高亮内核重构 + 电子书标注 + 查词/翻译 + 朗读扩展到 TXT/MD/PDF</h2>
           <span class="changelog-date">2026年9月13日</span>
         </div>
         <div class="changelog-body">
@@ -59,6 +59,14 @@
             <li>起始位置三选一弹窗（继续上次进度 / 当前阅读位置 / 从头开始），替代原生 confirm()</li>
             <li>收听历史面板上线：总时长、会话数、总句数与明细列表</li>
             <li>收听时长不再把暂停时间计入（原为「会话开始→章节结束」的墙钟差值）</li>
+          </ul>
+          <h3>朗读支持扩展到 TXT / Markdown / PDF</h3>
+          <ul>
+            <li>此前只有 EPUB 能朗读 —— 现将朗读编排抽为与渲染引擎无关的共享层，<strong>四种格式都能点右下角浮动按钮起播</strong></li>
+            <li>PDF 以「一页 = 一个 section」实现，<strong>可自动跨页连读</strong>，无需手动翻页</li>
+            <li>TXT / Markdown 从当前滚动位置起播并自动跟随，读完自动收尾</li>
+            <li>单 section 格式不再显示无意义的「上一章 / 下一章」按钮（而非显示后点了没反应）</li>
+            <li>朗读高亮改用与渲染引擎无关的坐标体系，PDF 文本层与 EPUB 共用同一套高亮逻辑</li>
           </ul>
           <h3>高亮内核重构</h3>
           <ul>
@@ -85,6 +93,10 @@
           <ul>
             <li>修复主窗口引用失效：IPC handler 注册早于建窗，导致各处拿到永久 null 快照 —— 标题栏最小化/最大化/关闭三个按钮、ffmpeg 状态推送、定时消息派发通知、另存为对话框父窗口均受影响</li>
             <li>删除 legacy 朗读路径（textSplitter / domMarker，-344 行）：适配器已成为唯一实现，该回退分支经核实不可达</li>
+            <li>修复 <strong>TXT 以空行开头时整本被判不可读</strong>：段的可读性判定落在首个子节点上，首段是空行时整篇被丢掉，表现为点朗读毫无反应</li>
+            <li>修复 <strong>PDF 并发翻页等待时 Promise 永久挂起</strong>：等待槽位只有一个，4 秒内并发两次翻页等待会互相覆盖，导致会话卡住、不再写收听进度</li>
+            <li>修复 <strong>恢复进度时越界索引未裁剪</strong>：会让朗读从下一节开头静默跳读</li>
+            <li>修复 <strong>点「上一章 / 下一章」后停播</strong>：现在会接着朗读新章，而不是停住等用户再点一次播放</li>
           </ul>
         </div>
       </div>
@@ -525,7 +537,7 @@
 
   <script>
     // 自动根据平台与最新 latest.yml 动态替换导航栏下载链接
-    let currentVersion = '0.3.5';
+    let currentVersion = '0.4.0';
 
     function getOS() {
       if (navigator.userAgentData && navigator.userAgentData.platform) {

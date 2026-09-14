@@ -1,15 +1,15 @@
 version: 0.4.0
 files:
   - url: https://github.com/samjoeyang/unobox-release/releases/download/v0.4.0/unobox_0.4.0.AppImage
-    sha512: qEx1gVy4fp2aOmWL0k+nczTAMVzE2ERF0Jf4JBWkppHW8VfF3GG/DihNlq2Gub/AfNJh5RbAb1uulPxRArq1Pw==
-    size: 457307824
-    blockMapSize: 476868
+    sha512: aOxDrDP7HEXbulOR0NT0VoRLiP4aHXf1GreQzR9b+4dj84NVjxgi0/Uqs38P55g2/vqqzYIi229g9oNUvFtbFQ==
+    size: 457307821
+    blockMapSize: 476865
   - url: https://github.com/samjoeyang/unobox-release/releases/download/v0.4.0/unobox_0.4.0.deb
-    sha512: J6Mkww4COEY7HtSb5UvTPh62YB4IccU3epRM9rR/KevNERnPqEw8PWvroPnsWGOxKUtj9kSUkF7ocYizltBqGg==
-    size: 253533996
+    sha512: 2F+BcrDIpBUOwq0hUdQBd/+PWoJ7puS6+Dk+VoUvicbZnyn2+1zasQYsfqdglSDpdmSjdg7ZyuNJVo8P2XWtuA==
+    size: 253538222
   - url: https://github.com/samjoeyang/unobox-release/releases/download/v0.4.0/unobox_0.4.0.rpm
-    sha512: TqI6i/3vu2G8mNQtLqixvEERnLdHZX+bx9l6GRBw7naLnH9dS/JJmeqlMKpbS6Zfb46TeSBLWmIe9OnCV3qCLw==
-    size: 255850293
+    sha512: 7a3g7c38Bi9sw4JuC+HbD+uMMCpVorGm/fVphsZXLribM7FfiN5ahmyWzDA9+dVuai5983OiGRAE2eCyyW5SSw==
+    size: 255863061
 path: https://github.com/samjoeyang/unobox-release/releases/download/v0.4.0/unobox_0.4.0.AppImage
-sha512: qEx1gVy4fp2aOmWL0k+nczTAMVzE2ERF0Jf4JBWkppHW8VfF3GG/DihNlq2Gub/AfNJh5RbAb1uulPxRArq1Pw==
-releaseDate: '2026-09-14T13:07:03.855Z'
+sha512: aOxDrDP7HEXbulOR0NT0VoRLiP4aHXf1GreQzR9b+4dj84NVjxgi0/Uqs38P55g2/vqqzYIi229g9oNUvFtbFQ==
+releaseDate: '2026-09-14T13:27:48.742Z'

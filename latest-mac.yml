@@ -1,17 +1,17 @@
 version: 0.4.0
 files:
   - url: https://github.com/samjoeyang/unobox-release/releases/download/v0.4.0/unobox-0.4.0-arm64-mac.zip
-    sha512: qjxz2fAgGT/zl/XM7zUCv/crpRmkgUFwgBPnVH6oylxe9SMjg8bJp1LW6lpZbSnsp7zzdr03jThlKRAcNR4j0Q==
-    size: 226677527
+    sha512: EG/MexujY9WvW9U3iybGCiqi7e4hIjJTs4kaCB1aw+gxX27dIGQ1HhIMBNtlk1MMqoDYdZSqjL60nVZgMfS1RQ==
+    size: 226677523
   - url: https://github.com/samjoeyang/unobox-release/releases/download/v0.4.0/unobox-0.4.0-mac.zip
-    sha512: cTMJs2qBwx/oNsJnbzblta5jCDYE/Cwf19vnYk8dbUbUb05lR8+sZfxUEp8Sb79LuCawzdF9oO3exoRVxPJN8Q==
+    sha512: 4LyLnTa9QZgPrXbqmK6iR4nkzB8kq72Lgc8Xui8Vdb3g30RojGOX2gn/PDJD9sWjY9ijTPA8Rgl+gKJUzYLJTA==
     size: 231164722
   - url: https://github.com/samjoeyang/unobox-release/releases/download/v0.4.0/unobox-0.4.0-arm64.dmg
-    sha512: xAGLai1tV8RAFsxbRtIlt9VVzQBOd0u8pIQkkSghW6XhqD1lvedXDpfwOJBlTK6LopNDVhTxP3AC2HSsSxhTow==
-    size: 236899638
+    sha512: DCX6/tgraYL0YnWIa4StIpe7mdpX8ypu/NrvBfib/UQhF3fEfkquKwJ5d8y2BvzmR4UIZ7Quw6gOKglj+2tDyQ==
+    size: 236867664
   - url: https://github.com/samjoeyang/unobox-release/releases/download/v0.4.0/unobox-0.4.0.dmg
-    sha512: 6YDQxH8UQ1q/legnOaJZ5ZYuvTlghpOesWYZspTSN016lK9uCChNWyY61p8KI9KcRivhnE3fQI3WR969aHapFQ==
-    size: 241325525
+    sha512: 6fg5GQlll3pzmQt36NKOzlvVaFFSYTSPXnE+8iYsjUMbehdVvSFPh9VLI4MdHFfNicDMBDjK3RT2fuC1qdmH6A==
+    size: 241315752
 path: https://github.com/samjoeyang/unobox-release/releases/download/v0.4.0/unobox-0.4.0-arm64-mac.zip
-sha512: qjxz2fAgGT/zl/XM7zUCv/crpRmkgUFwgBPnVH6oylxe9SMjg8bJp1LW6lpZbSnsp7zzdr03jThlKRAcNR4j0Q==
-releaseDate: '2026-09-14T12:57:13.452Z'
+sha512: EG/MexujY9WvW9U3iybGCiqi7e4hIjJTs4kaCB1aw+gxX27dIGQ1HhIMBNtlk1MMqoDYdZSqjL60nVZgMfS1RQ==
+releaseDate: '2026-09-14T13:16:39.346Z'

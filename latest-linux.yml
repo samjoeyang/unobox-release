@@ -1,0 +1,15 @@
+version: 0.4.0
+files:
+  - url: unobox_0.4.0.AppImage
+    sha512: 6Wc08IPTJPrF36S2kWQHag+t/nNbkIrI9pyzdlRB1Dx2jV5XW/Bhbb2BRZnNg1l2Y8jp/00uXFI8QECsP+V6Pg==
+    size: 457307822
+    blockMapSize: 476866
+  - url: unobox_0.4.0.deb
+    sha512: 21LSck7W6Je+ErjFu9A3riQgS40vwOFdHGCHOpgkGidJKQwPaHKInZqyK3yGIDVIbrkakwWk+JO17HlTUnq5dA==
+    size: 253539248
+  - url: unobox_0.4.0.rpm
+    sha512: E5XzSaLgn2OeoRI/ZVG9FVTeGb4iR+Mjaw7TiDQbZQkEH/FBzveBQwrFRuonW+6ijRNRbX1P0DxNr/Qje0YQgw==
+    size: 255839817
+path: unobox_0.4.0.AppImage
+sha512: 6Wc08IPTJPrF36S2kWQHag+t/nNbkIrI9pyzdlRB1Dx2jV5XW/Bhbb2BRZnNg1l2Y8jp/00uXFI8QECsP+V6Pg==
+releaseDate: '2026-09-13T12:55:32.085Z'
